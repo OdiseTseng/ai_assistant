@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-TW">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Odise's Personal Website">
-    <title>Odise GitHub Pages</title>
+    <meta name="description" content="Odise's Personal Gemini Assistant">
+    <title>Odise Gemini Assistant</title>
     <style>
         :root {
             --bg-color: #0d1117;
@@ -12,6 +13,8 @@
             --accent-color: #58a6ff;
             --card-bg: #161b22;
             --border-color: #30363d;
+            --success-color: #238636;
+            --input-bg: #010409;
         }
 
         body {
@@ -26,52 +29,232 @@
         }
 
         .container {
-            text-align: center;
             padding: 2rem;
             background-color: var(--card-bg);
             border: 1px solid var(--border-color);
             border-radius: 6px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
             max-width: 600px;
             width: 90%;
+            box-sizing: border-box;
         }
 
         h1 {
             color: var(--accent-color);
-            margin-bottom: 1rem;
-        }
-
-        p {
-            line-height: 1.6;
+            margin-top: 0;
+            font-size: 1.5rem;
+            text-align: center;
             margin-bottom: 1.5rem;
         }
 
-        a {
-            color: var(--accent-color);
-            text-decoration: none;
+        .input-group {
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="password"],
+        textarea {
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 14px;
+            outline: none;
+            width: 100%;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+
+        input[type="password"]:focus,
+        textarea:focus {
+            border-color: var(--accent-color);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+            font-family: inherit;
+        }
+
+        button {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: 1px solid rgba(240, 246, 252, 0.1);
+            font-size: 14px;
             font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            white-space: nowrap;
         }
 
-        a:hover {
-            text-decoration: underline;
+        .btn-primary {
+            background-color: var(--accent-color);
+            color: #ffffff;
+            border: none;
         }
 
-        .footer {
-            margin-top: 2rem;
-            font-size: 0.875rem;
+        .btn-primary:hover:not(:disabled) {
+            filter: brightness(1.1);
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+            color: #ffffff;
+            border: none;
+        }
+
+        .btn-secondary {
+            background-color: #21262d;
+            color: var(--text-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: #30363d;
+        }
+
+        button:disabled {
+            background-color: #21262d;
             color: #8b949e;
+            cursor: not-allowed;
+            border-color: transparent;
+        }
+
+        #responseArea {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            min-height: 60px;
+            white-space: pre-wrap;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* Helper for button container */
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 1rem;
+        }
+
+        .controls input {
+            flex-grow: 1;
         }
     </style>
 </head>
+
 <body>
-    <div class="container">
-        <h1>Hello World!</h1>
-        <p>Welcome to my GitHub Pages site. This site is currently under construction.</p>
-        <p>Check out my <a href="https://github.com/odise">GitHub Profile</a>.</p>
-        
-        <div class="footer">
-            &copy; 2025 Odise. Powered by GitHub Pages.
+    <div class="container" id="gemini-app">
+        <h1>Gemini 助理</h1>
+
+        <div class="controls">
+            <input type="password" id="apiKeyInput" placeholder="在此貼上您的 Google AI Studio API Key">
+            <button onclick="saveKey()" class="btn-success">儲存</button>
+            <button onclick="clearKey()" class="btn-secondary">清除</button>
+        </div>
+
+        <div>
+            <textarea id="userInput" placeholder="輸入查詢 (例如：公車307到站時間)"></textarea>
+            <button id="sendBtn" onclick="askGemini()" disabled class="btn-primary"
+                style="width: 100%; margin-top: 10px;">
+                發送查詢 (請先儲存金鑰)
+            </button>
+        </div>
+
+        <div id="responseArea">
+            狀態：等待金鑰輸入...
         </div>
     </div>
+
+    <script>
+        // 核心功能：檢查金鑰狀態並切換按鈕
+        function checkKeyStatus() {
+            const key = localStorage.getItem('user_gemini_key');
+            const sendBtn = document.getElementById('sendBtn');
+            const responseArea = document.getElementById('responseArea');
+
+            if (key && key !== "") {
+                // 有金鑰：開啟按鈕
+                sendBtn.disabled = false;
+                sendBtn.innerText = "發送查詢";
+                responseArea.innerText = "✅ 金鑰已就緒，可以開始查詢。";
+            } else {
+                // 沒金鑰：鎖定按鈕
+                sendBtn.disabled = true;
+                sendBtn.innerText = "發送查詢 (請先儲存金鑰)";
+                responseArea.innerText = "⚠️ 尚未偵測到儲存的金鑰，請先於上方輸入並點擊儲存。";
+            }
+        }
+
+        // 網頁載入時自動檢查
+        window.onload = checkKeyStatus;
+
+        function displayStatus(msg) {
+            document.getElementById('responseArea').innerText = msg;
+        }
+
+        function saveKey() {
+            const key = document.getElementById('apiKeyInput').value.trim();
+            if (key) {
+                localStorage.setItem('user_gemini_key', key);
+                checkKeyStatus(); // 儲存後立即更新按鈕狀態
+                document.getElementById('apiKeyInput').value = ""; // 安全性清空
+                displayStatus("✅ 金鑰已儲存！");
+            } else {
+                displayStatus("❌ 請輸入有效的金鑰內容。");
+            }
+        }
+
+        function clearKey() {
+            localStorage.removeItem('user_gemini_key');
+            document.getElementById('apiKeyInput').value = "";
+            checkKeyStatus(); // 清除後立即鎖定按鈕
+        }
+
+        async function askGemini() {
+            const key = localStorage.getItem('user_gemini_key');
+            // 這裡加入您的偏好設定前綴
+            const userPrompt = document.getElementById('userInput').value;
+            const finalPrompt = `請以詳細步驟或列表形式回答，若涉及 YouBike 請僅列出站名與車量數。問題：${userPrompt}`;
+
+            const responseArea = document.getElementById('responseArea');
+            const sendBtn = document.getElementById('sendBtn');
+
+            if (!userPrompt) return displayStatus("❌ 請輸入問題。");
+
+            sendBtn.disabled = true;
+            sendBtn.innerText = "⏳ 思考中...";
+            displayStatus("⏳ 思考中...");
+
+            try {
+                // Modified to use gemini-1.5-flash as it is a stable and fast model
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: finalPrompt }] }]
+                    })
+                });
+
+                const data = await response.json();
+                if (data.error) {
+                    displayStatus("❌ API 錯誤: " + data.error.message);
+                } else {
+                    responseArea.innerText = data.candidates[0].content.parts[0].text;
+                }
+            } catch (error) {
+                console.error(error);
+                displayStatus("❌ 連線異常，請檢查網路或金鑰是否正確。");
+            } finally {
+                sendBtn.disabled = false; // 回傳後重新開啟
+                sendBtn.innerText = "發送查詢";
+            }
+        }
+    </script>
 </body>
+
 </html>

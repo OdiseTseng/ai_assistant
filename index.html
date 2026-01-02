@@ -85,6 +85,14 @@
             flex-grow: 1;
         }
 
+        /* Result Box Style */
+        .result-box {
+            margin-top: auto;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 10px;
+            min-height: 20px;
+        }
+
         /* Buttons */
         button {
             padding: 8px 16px;
@@ -299,7 +307,7 @@
 
         .station-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
             gap: 10px;
         }
 
@@ -311,6 +319,7 @@
             cursor: pointer;
             transition: 0.2s;
             border: 1px solid transparent;
+            font-size: 0.95rem;
         }
 
         .grid-item:hover {
@@ -377,18 +386,21 @@
         <div class="card">
             <h2>🚄 火車時刻表 <button class="btn-add" onclick="openModal('train')">+</button></h2>
             <div id="train-list" class="station-list"></div>
+            <div id="train-result" class="result-box"></div>
         </div>
 
         <!-- Section 2: Bus -->
         <div class="card">
             <h2>🚌 公車時刻表 <button class="btn-add" onclick="openModal('bus')">+</button></h2>
             <div id="bus-list" class="station-list"></div>
+            <div id="bus-result" class="result-box"></div>
         </div>
 
         <!-- Section 3: YouBike -->
         <div class="card">
             <h2>🚲 YouBike 站點 <button class="btn-add" onclick="openModal('bike')">+</button></h2>
             <div id="bike-list" class="station-list"></div>
+            <div id="bike-result" class="result-box"></div>
         </div>
 
         <!-- Section 4: Custom Prompt -->
@@ -402,10 +414,15 @@
             </div>
         </div>
 
-        <!-- Response Area -->
-        <div class="card response-card">
-            <h2>🤖 Gemini 回應</h2>
-            <div id="responseArea">狀態：等待操作...</div>
+        <!-- Section 5: Info / Response -->
+        <div class="header-controls" style="grid-column: 1 / -1; justify-content: space-between; align-items: center;">
+            <div id="statusText">狀態：等待操作...</div>
+            <button onclick="toggleDebug()" class="btn-secondary" style="width: auto;">ℹ️ 詳細資訊</button>
+        </div>
+
+        <div id="debugArea" class="card response-card" style="display: none;">
+            <h2>🤖 原始回應 (Debug)</h2>
+            <div id="responseArea"></div>
         </div>
 
         <!-- Footer -->
@@ -416,9 +433,19 @@
     <div id="stationModal" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="modalTitle">選擇/新增站點</h3>
-                <button class="modal-close" onclick="closeModal()">×</button>
+                <h3 id="modalTitle" style="white-space: nowrap; margin-right: 15px;">新增站點</h3>
+
+                <!-- Expanded Header Search Area -->
+                <div style="flex-grow: 1; display: flex; gap: 5px; position: relative;">
+                    <input type="text" id="modalSearch" class="search-bar" style="margin: 0;"
+                        placeholder="搜尋站點 (例如: 板橋, 307)...">
+                    <button id="clearSearchBtn" onclick="clearSearch()"
+                        style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); background: rgba(255, 255, 255, 0.1); border: 1px solid var(--card-border); border-radius: 4px; padding: 2px 8px; color: var(--text-color); display: none; cursor:pointer; font-size: 12px;">Clear</button>
+                </div>
+
+                <button class="modal-close" onclick="closeModal()" style="margin-left: 15px;">×</button>
             </div>
+
             <div class="modal-body">
                 <!-- Left Sidebar -->
                 <div class="modal-sidebar" id="modalSidebar">
@@ -426,10 +453,15 @@
                 </div>
                 <!-- Right Main Area -->
                 <div class="modal-main">
-                    <input type="text" id="modalSearch" class="search-bar" placeholder="搜尋站點...">
+                    <div id="loadingIndicator"
+                        style="display:none; text-align: center; color: var(--accent-color); padding: 20px;">
+                        🤖 AI 搜尋中...
+                    </div>
                     <div id="modalGrid" class="station-grid">
                         <!-- Stations -->
                     </div>
+                    <div id="modalHelpText"
+                        style="margin-top: auto; padding-top: 15px; color: #64748b; font-size: 0.85em;"></div>
                 </div>
             </div>
         </div>
@@ -441,13 +473,22 @@
     <script>
         // --- State Management ---
         const DEFAULT_PROMPT = `現在時間 {TIME}，位置 {GPS}。
-請協助查詢以下交通資訊：
+請協助查詢以下交通資訊，並務必以 JSON 格式回傳，不要包含 Markdown 標記 (\`\`\`json)。
+需要查詢的站點：
 1. 火車：{TRAIN_LIST}
 2. 公車：{BUS_LIST}
-3. YouBike：{BIKE_LIST} (請僅列出站名與可借還數量)
+3. YouBike：{BIKE_LIST}
 
-另外，請根據我目前的 GPS 位置，推薦距離最近的上述類別站點各一個。
-請以清晰的列表呈現資訊。`;
+JSON 格式要求：
+{
+  "train": ["站點A: 資訊...", "站點B: 資訊..."],
+  "bus": ["路線A: 資訊..."],
+  "bike": ["站點A: 可借/可還..."],
+  "misc": "GPS 推薦或其他補充資訊..."
+}
+
+若該類別無查詢項目或無資料，請回傳空陣列 []。
+請根據我目前的 GPS 位置，推薦距離最近的上述類別站點各一個，放入 misc 欄位中。`;
 
         const state = {
             train: JSON.parse(localStorage.getItem('user_stations_train')) || [],
@@ -509,7 +550,7 @@
             localStorage.setItem('user_prompt_template', state.prompt);
         });
 
-        // --- MODAL LOGIC ---
+        // --- MODAL & AI SEARCH LOGIC ---
         let currentModalType = '';
         let currentCategory = '';
 
@@ -517,17 +558,19 @@
             currentModalType = type;
             const titleMap = { train: '新增火車', bus: '新增公車', bike: '新增 YouBike' };
             document.getElementById('modalTitle').innerText = titleMap[type];
-            document.getElementById('modalSearch').value = '';
 
+            // Reset Search
+            const searchInput = document.getElementById('modalSearch');
+            searchInput.value = '';
+            searchInput.oninput = (e) => filterStations(e.target.value);
+            document.getElementById('clearSearchBtn').style.display = 'none';
+
+            // Sidebar & Grid
             const sidebar = document.getElementById('modalSidebar');
-            const grid = document.getElementById('modalGrid');
             sidebar.innerHTML = '';
-            grid.innerHTML = '';
-
             const data = STATION_DATA[type];
 
-            // Generate Categories (Sidebar)
-            if (data) {
+            if (data && Object.keys(data).length > 0) {
                 Object.keys(data).forEach(cat => {
                     const div = document.createElement('div');
                     div.className = 'category-item';
@@ -535,41 +578,37 @@
                     div.onclick = () => selectCategory(cat);
                     sidebar.appendChild(div);
                 });
-
-                // Select first category by default if available
-                const first = Object.keys(data)[0];
-                if (first) selectCategory(first);
+                selectCategory(Object.keys(data)[0]);
             } else {
-                sidebar.innerHTML = '<div style="padding:15px; color:#64748b">無分類</div>';
+                // Bus/Bike typically have no presets
+                sidebar.innerHTML = '<div style="padding:15px; color:#64748b; font-size:0.9em;">請直接搜尋站點名稱</div>';
+                renderGrid([]);
             }
 
-            // Add Search Listener
-            document.getElementById('modalSearch').oninput = (e) => filterStations(e.target.value);
-
             document.getElementById('stationModal').classList.add('active');
+            searchInput.focus();
         }
 
         function closeModal() {
             document.getElementById('stationModal').classList.remove('active');
         }
 
+        function clearSearch() {
+            document.getElementById('modalSearch').value = '';
+            filterStations('');
+        }
+
         function selectCategory(cat) {
             currentCategory = cat;
-            // Highlight sidebar
             document.querySelectorAll('.category-item').forEach(el => {
                 el.classList.toggle('active', el.innerText === cat);
             });
-
-            // Render grid
             renderGrid(STATION_DATA[currentModalType][cat] || []);
         }
 
         function renderGrid(items) {
             const grid = document.getElementById('modalGrid');
             grid.innerHTML = '';
-
-            // Add custom input tip if needed (mostly for bus/bike search fallback)
-            // But since we have a search bar that acts as a custom adder, we handle it there.
 
             items.forEach(item => {
                 const div = document.createElement('div');
@@ -582,24 +621,30 @@
 
         function filterStations(query) {
             const grid = document.getElementById('modalGrid');
+            document.getElementById('clearSearchBtn').style.display = query ? 'block' : 'none';
             grid.innerHTML = '';
 
-            const data = STATION_DATA[currentModalType];
             if (!query) {
-                if (currentCategory) selectCategory(currentCategory);
+                if (currentCategory && STATION_DATA[currentModalType][currentCategory]) {
+                    selectCategory(currentCategory);
+                } else {
+                    grid.innerHTML = '<div style="padding:20px; color:#64748b; width:100%; text-align:center;">請輸入關鍵字搜尋</div>';
+                }
                 return;
             }
 
-            // Fuzzy search across ALL categories for this type
-            let matches = new Set(); // Use Set for unique values
-
-            // 1. Search in presets
-            Object.values(data).forEach(list => {
-                list.forEach(item => {
-                    if (item.includes(query)) matches.add(item);
+            // 1. Local Fuzzy Search
+            const data = STATION_DATA[currentModalType];
+            let matches = new Set();
+            if (data) {
+                Object.values(data).forEach(list => {
+                    list.forEach(item => {
+                        if (item.includes(query)) matches.add(item);
+                    });
                 });
-            });
+            }
 
+            // Render Local Matches
             matches.forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'grid-item';
@@ -608,16 +653,80 @@
                 grid.appendChild(div);
             });
 
-            // 2. Allow adding custom if not found (or even if found)
-            const customDiv = document.createElement('div');
-            customDiv.className = 'grid-item';
-            customDiv.style.borderColor = 'var(--success-color)';
-            customDiv.style.color = 'var(--success-color)';
-            customDiv.innerHTML = `<b>+ 新增 "${query}"</b><br><small>不在清單中？直接新增</small>`;
-            customDiv.onclick = () => confirmAddStation(query);
+            // 2. Direct Add Option
+            const directAdd = document.createElement('div');
+            directAdd.className = 'grid-item';
+            directAdd.style.borderColor = 'var(--text-color)';
+            directAdd.innerHTML = `<b>+ 直接新增 "${query}"</b>`;
+            directAdd.onclick = () => confirmAddStation(query);
+            grid.appendChild(directAdd);
 
-            // Always show custom add option when searching
-            grid.prepend(customDiv);
+            // 3. AI Search Option (For potentially invalid names)
+            const aiSearch = document.createElement('div');
+            aiSearch.className = 'grid-item';
+            aiSearch.style.borderColor = 'var(--accent-color)';
+            aiSearch.style.color = 'var(--accent-color)';
+            aiSearch.style.gridColumn = "1 / -1"; // Full width
+            aiSearch.style.marginTop = "10px";
+            aiSearch.innerText = `🔍 AI 搜尋: 哪些站包含 "${query}"？`;
+            aiSearch.onclick = () => askGeminiForStations(query);
+            grid.appendChild(aiSearch);
+        }
+
+        async function askGeminiForStations(query) {
+            const key = localStorage.getItem('user_gemini_key');
+            if (!key) return alert("請先設定 API Key");
+
+            const loading = document.getElementById('loadingIndicator');
+            const grid = document.getElementById('modalGrid');
+
+            grid.style.display = 'none';
+            loading.style.display = 'block';
+
+            try {
+                const typeName = currentModalType === 'bus' ? '雙北公車路線或站牌' : (currentModalType === 'bike' ? '雙北 YouBike 2.0 站點' : '台灣火車站點');
+                const prompt = `請列出 5-10 個名稱中包含「${query}」的「${typeName}」完整名稱。
+請務必只回傳 JSON 字串陣列 (String Array)，不要有任何 Markdown 或其他文字。
+範例：["捷運市政府站(3號出口)", "市政府(市府路)"]`;
+
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${key}`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+
+                const data = await response.json();
+                const text = data.candidates[0].content.parts[0].text;
+                const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
+                const stations = JSON.parse(cleanJson);
+
+                if (Array.isArray(stations)) {
+                    grid.innerHTML = '';
+
+                    const header = document.createElement('div');
+                    header.style.gridColumn = "1 / -1";
+                    header.style.color = "var(--accent-color)";
+                    header.style.marginBottom = "5px";
+                    header.innerText = `🤖 AI 搜尋結果 ("${query}"):`;
+                    grid.appendChild(header);
+
+                    stations.forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = 'grid-item';
+                        div.innerText = item;
+                        div.onclick = () => confirmAddStation(item);
+                        grid.appendChild(div);
+                    });
+                }
+
+            } catch (e) {
+                alert("AI 搜尋失敗: " + e.message);
+                filterStations(query);
+            } finally {
+                loading.style.display = 'none';
+                grid.style.display = 'grid';
+            }
         }
 
         function confirmAddStation(name) {
@@ -626,23 +735,19 @@
             saveState();
             renderAllStations();
             closeModal();
-            // Optional: flash status
         }
 
         // --- API & GPS Logic ---
         function checkKeyStatus() {
             const key = localStorage.getItem('user_gemini_key');
             const sendBtn = document.getElementById('sendBtn');
-            const responseArea = document.getElementById('responseArea');
             const keyInput = document.getElementById('apiKeyInput');
 
             if (key) {
                 sendBtn.disabled = false;
-                responseArea.innerText = "✅ 金鑰已就緒，準備發送。";
                 if (keyInput.value === "") keyInput.placeholder = "金鑰已儲存 (隱藏)";
             } else {
                 sendBtn.disabled = true;
-                responseArea.innerText = "⚠️ 尚未偵測到金鑰，請先輸入並儲存。";
             }
         }
 
@@ -660,6 +765,11 @@
             localStorage.removeItem('user_gemini_key');
             checkKeyStatus();
             location.reload();
+        }
+
+        function toggleDebug() {
+            const debugArea = document.getElementById('debugArea');
+            debugArea.style.display = debugArea.style.display === 'none' ? 'block' : 'none';
         }
 
         async function getGPS() {
@@ -686,10 +796,16 @@
 
             const sendBtn = document.getElementById('sendBtn');
             const responseArea = document.getElementById('responseArea');
+            const statusText = document.getElementById('statusText');
+
+            // Clear previous results
+            document.getElementById('train-result').innerHTML = '';
+            document.getElementById('bus-result').innerHTML = '';
+            document.getElementById('bike-result').innerHTML = '';
 
             sendBtn.disabled = true;
             sendBtn.innerText = "📍 取得定位中...";
-            responseArea.innerText = "正在讀取 GPS 位置...";
+            statusText.innerText = "正在讀取 GPS 位置...";
 
             try {
                 const gpsLocation = await getGPS();
@@ -705,6 +821,7 @@
                 console.log("Sending Prompt:", finalPrompt);
 
                 sendBtn.innerText = "🤖 思考中...";
+                statusText.innerText = "AI 正在分析交通狀況...";
                 responseArea.innerText = `[送出查詢]\n${finalPrompt}\n\n[等待回應]...`;
 
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${key}`;
@@ -725,13 +842,53 @@
                 const resultText = data.candidates[0].content.parts[0].text;
                 responseArea.innerText = resultText;
 
+                // Try Parsing JSON
+                try {
+                    const cleanJson = resultText.replace(/```json/g, '').replace(/```/g, '').trim();
+                    const resultObj = JSON.parse(cleanJson);
+
+                    renderResultList('train', resultObj.train);
+                    renderResultList('bus', resultObj.bus);
+                    renderResultList('bike', resultObj.bike);
+
+                    statusText.innerText = `✅ 更新完成 (${now})`;
+                    if (resultObj.misc) {
+                        statusText.innerText += ` | ${resultObj.misc}`;
+                    }
+
+                } catch (e) {
+                    console.error("JSON Parse Error", e);
+                    statusText.innerText = "⚠️ 解析失敗，請查看詳細資訊";
+                    document.getElementById('debugArea').style.display = 'block';
+                }
+
             } catch (error) {
                 console.error(error);
-                responseArea.innerText = "❌ 發生錯誤: " + error.message;
+                statusText.innerText = "❌ 發生錯誤";
+                responseArea.innerText = "錯誤: " + error.message;
+                document.getElementById('debugArea').style.display = 'block';
             } finally {
                 sendBtn.disabled = false;
                 sendBtn.innerText = "取得 GPS 並發送查詢";
             }
+        }
+
+        function renderResultList(type, items) {
+            const container = document.getElementById(`${type}-result`);
+            container.innerHTML = '';
+            if (!items || items.length === 0) {
+                container.innerHTML = '<div style="padding:10px; color:#64748b; font-size:0.9em;">無資料</div>';
+                return;
+            }
+
+            items.forEach(text => {
+                const div = document.createElement('div');
+                div.style.padding = "8px 0";
+                div.style.borderBottom = "1px solid rgba(255,255,255,0.05)";
+                div.style.fontSize = "0.95em";
+                div.innerText = text;
+                container.appendChild(div);
+            });
         }
     </script>
 </body>

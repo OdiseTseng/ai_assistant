@@ -8,242 +8,444 @@
     <title>Odise Gemini Assistant</title>
     <style>
         :root {
-            --bg-color: #0d1117;
-            --text-color: #c9d1d9;
-            --accent-color: #58a6ff;
-            --card-bg: #161b22;
-            --border-color: #30363d;
-            --success-color: #238636;
-            --input-bg: #010409;
+            --bg-color: #0f172a;
+            --text-color: #e2e8f0;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --accent-color: #38bdf8;
+            --accent-hover: #0ea5e9;
+            --success-color: #22c55e;
+            --danger-color: #ef4444;
+            --input-bg: rgba(15, 23, 42, 0.8);
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
+            background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 70%);
             color: var(--text-color);
             margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             min-height: 100vh;
-        }
-
-        .container {
-            padding: 2rem;
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-            max-width: 600px;
-            width: 90%;
+            padding: 20px;
             box-sizing: border-box;
         }
 
-        h1 {
-            color: var(--accent-color);
-            margin-top: 0;
-            font-size: 1.5rem;
-            text-align: center;
-            margin-bottom: 1.5rem;
+        /* 2x2 Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
         }
 
-        .input-group {
-            margin-bottom: 1rem;
+        /* For key input area at the top */
+        .header-controls {
+            grid-column: 1 / -1;
             display: flex;
             gap: 10px;
+            margin-bottom: 20px;
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(10px);
         }
 
+        /* Card Styles */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+        }
+
+        h2 {
+            color: var(--accent-color);
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Station Buttons Container */
+        .station-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-grow: 1;
+        }
+
+        /* Buttons */
+        button {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--card-border);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--text-color);
+        }
+
+        button:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .btn-add {
+            background-color: rgba(56, 189, 248, 0.1);
+            color: var(--accent-color);
+            border: 1px dashed var(--accent-color);
+        }
+
+        .btn-add:hover {
+            background-color: var(--accent-color);
+            color: #fff;
+        }
+
+        .btn-delete {
+            position: relative;
+            padding-right: 20px;
+        }
+
+        .station-tag {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            cursor: default;
+            /* Tags themselves aren't clickable for action in this version, just visual */
+            position: relative;
+        }
+
+        .station-tag .remove-icon {
+            margin-left: 8px;
+            cursor: pointer;
+            color: #ef4444;
+            font-weight: bold;
+        }
+
+        .station-tag .remove-icon:hover {
+            color: #ffadad;
+        }
+
+        /* Inputs */
         input[type="password"],
         textarea {
             background-color: var(--input-bg);
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--card-border);
             color: var(--text-color);
-            border-radius: 6px;
-            padding: 8px 12px;
+            border-radius: 8px;
+            padding: 10px 14px;
             font-size: 14px;
-            outline: none;
             width: 100%;
             box-sizing: border-box;
-            transition: border-color 0.2s;
+            font-family: inherit;
         }
 
         input[type="password"]:focus,
         textarea:focus {
+            outline: none;
             border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
         }
 
-        textarea {
+        /* Prompt Area */
+        .prompt-area {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .prompt-area textarea {
+            flex-grow: 1;
+            min-height: 150px;
             resize: vertical;
-            min-height: 80px;
-            font-family: inherit;
         }
 
-        button {
-            padding: 8px 16px;
-            border-radius: 6px;
-            border: 1px solid rgba(240, 246, 252, 0.1);
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
-            white-space: nowrap;
-        }
-
+        /* Action Buttons */
         .btn-primary {
-            background-color: var(--accent-color);
-            color: #ffffff;
+            background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
+            color: white;
             border: none;
+            width: 100%;
+            padding: 12px;
+            font-size: 1rem;
+            margin-top: 10px;
         }
 
-        .btn-primary:hover:not(:disabled) {
-            filter: brightness(1.1);
-        }
-
-        .btn-success {
-            background-color: var(--success-color);
-            color: #ffffff;
-            border: none;
-        }
-
-        .btn-secondary {
-            background-color: #21262d;
-            color: var(--text-color);
-        }
-
-        .btn-secondary:hover {
-            background-color: #30363d;
-        }
-
-        button:disabled {
-            background-color: #21262d;
-            color: #8b949e;
+        .btn-primary:disabled {
+            filter: grayscale(1);
             cursor: not-allowed;
-            border-color: transparent;
+            opacity: 0.7;
+        }
+
+        /* Response Area */
+        .response-card {
+            grid-column: 1 / -1;
+            min-height: 100px;
         }
 
         #responseArea {
-            margin-top: 1.5rem;
-            padding: 1rem;
-            background-color: var(--bg-color);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            min-height: 60px;
             white-space: pre-wrap;
-            font-size: 14px;
             line-height: 1.6;
         }
 
-        /* Helper for button container */
-        .controls {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 1rem;
+        /* Version Footer */
+        .footer {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 20px;
+            color: #64748b;
+            font-size: 0.8rem;
         }
 
-        .controls input {
-            flex-grow: 1;
+        /* Responsive */
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 
 <body>
-    <div class="container" id="gemini-app">
-        <h1>Gemini 助理</h1>
 
-        <div class="controls">
-            <input type="password" id="apiKeyInput" placeholder="在此貼上您的 Google AI Studio API Key">
-            <button onclick="saveKey()" class="btn-success">儲存</button>
-            <button onclick="clearKey()" class="btn-secondary">清除</button>
+    <div class="dashboard-grid">
+        <!-- API Key Header -->
+        <div class="header-controls">
+            <input type="password" id="apiKeyInput" placeholder="貼上 Google AI Studio API Key">
+            <button onclick="saveKey()" style="background: var(--success-color); border:none; color:white;">儲存</button>
+            <button onclick="clearKey()">清除</button>
         </div>
 
-        <div>
-            <textarea id="userInput" placeholder="輸入查詢 (例如：公車307到站時間)"></textarea>
-            <button id="sendBtn" onclick="askGemini()" disabled class="btn-primary"
-                style="width: 100%; margin-top: 10px;">
-                發送查詢 (請先儲存金鑰)
-            </button>
+        <!-- Section 1: Train -->
+        <div class="card">
+            <h2>🚄 火車時刻表 <button class="btn-add" onclick="addStation('train')">+</button></h2>
+            <div id="train-list" class="station-list">
+                <!-- Data populated by JS -->
+            </div>
         </div>
 
-        <div id="responseArea">
-            狀態：等待金鑰輸入...
+        <!-- Section 2: Bus -->
+        <div class="card">
+            <h2>🚌 公車時刻表 <button class="btn-add" onclick="addStation('bus')">+</button></h2>
+            <div id="bus-list" class="station-list">
+                <!-- Data populated by JS -->
+            </div>
         </div>
 
-        <div id="versionInfo" style="margin-top: 20px; text-align: center; font-size: 12px; color: #8b949e;">
-            <!-- Version info will be injected here -->
+        <!-- Section 3: YouBike -->
+        <div class="card">
+            <h2>🚲 YouBike 站點 <button class="btn-add" onclick="addStation('bike')">+</button></h2>
+            <div id="bike-list" class="station-list">
+                <!-- Data populated by JS -->
+            </div>
+        </div>
+
+        <!-- Section 4: Custom Prompt -->
+        <div class="card">
+            <h2>📝 自定義提示詞</h2>
+            <div class="prompt-area">
+                <textarea id="promptTemplate" placeholder="輸入提示詞模版..."></textarea>
+                <button id="sendBtn" onclick="askGemini()" class="btn-primary" disabled>
+                    取得 GPS 並發送查詢
+                </button>
+            </div>
+        </div>
+
+        <!-- Response Area -->
+        <div class="card response-card">
+            <h2>🤖 Gemini 回應</h2>
+            <div id="responseArea">狀態：等待操作...</div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer" id="versionInfo">
+            <!-- Version injected by JS -->
         </div>
     </div>
 
     <script src="version.js"></script>
-
     <script>
-        // 核心功能：檢查金鑰狀態並切換按鈕
-        function checkKeyStatus() {
-            const key = localStorage.getItem('user_gemini_key');
-            const sendBtn = document.getElementById('sendBtn');
-            const responseArea = document.getElementById('responseArea');
+        // --- State Management ---
+        const DEFAULT_PROMPT = `現在時間 {TIME}，位置 {GPS}。
+請協助查詢以下交通資訊：
+1. 火車：{TRAIN_LIST}
+2. 公車：{BUS_LIST}
+3. YouBike：{BIKE_LIST} (請僅列出站名與可借還數量)
 
-            if (key && key !== "") {
-                // 有金鑰：開啟按鈕
-                sendBtn.disabled = false;
-                sendBtn.innerText = "發送查詢";
-                responseArea.innerText = "✅ 金鑰已就緒，可以開始查詢。";
-            } else {
-                // 沒金鑰：鎖定按鈕
-                sendBtn.disabled = true;
-                sendBtn.innerText = "發送查詢 (請先儲存金鑰)";
-                responseArea.innerText = "⚠️ 尚未偵測到儲存的金鑰，請先於上方輸入並點擊儲存。";
-            }
-        }
+另外，請根據我目前的 GPS 位置，推薦距離最近的上述類別站點各一個。
+請以清晰的列表呈現資訊。`;
 
-        // 網頁載入時自動檢查
+        const state = {
+            train: JSON.parse(localStorage.getItem('user_stations_train')) || [],
+            bus: JSON.parse(localStorage.getItem('user_stations_bus')) || [],
+            bike: JSON.parse(localStorage.getItem('user_stations_bike')) || [],
+            prompt: localStorage.getItem('user_prompt_template') || DEFAULT_PROMPT
+        };
+
+        // --- Init ---
         window.onload = function () {
             checkKeyStatus();
+            renderAllStations();
+            document.getElementById('promptTemplate').value = state.prompt;
+
+            // Version Info
             if (typeof BUILD_INFO !== 'undefined') {
                 document.getElementById('versionInfo').innerText = `最後更新：${BUILD_INFO.time}`;
                 document.title = `Odise Gemini Assistant (${BUILD_INFO.time})`;
             }
         };
 
-        function displayStatus(msg) {
-            document.getElementById('responseArea').innerText = msg;
+        // --- Station Logic ---
+        function renderAllStations() {
+            renderList('train', state.train);
+            renderList('bus', state.bus);
+            renderList('bike', state.bike);
+        }
+
+        function renderList(type, list) {
+            const container = document.getElementById(`${type}-list`);
+            container.innerHTML = '';
+            list.forEach((item, index) => {
+                const tag = document.createElement('div');
+                tag.className = 'station-tag';
+                tag.innerHTML = `${item} <span class="remove-icon" onclick="removeStation('${type}', ${index})">×</span>`;
+                container.appendChild(tag);
+            });
+            if (list.length === 0) {
+                container.innerHTML = '<span style="color: #64748b; font-size: 0.9em;">尚無站點，請點擊 + 新增</span>';
+            }
+        }
+
+        function addStation(type) {
+            const name = prompt(`請輸入新的${type === 'train' ? '火車' : type === 'bus' ? '公車' : 'YouBike'}站點名稱：`);
+            if (name && name.trim()) {
+                state[type].push(name.trim());
+                saveState();
+                renderAllStations();
+            }
+        }
+
+        function removeStation(type, index) {
+            if (confirm(`確定要刪除 "${state[type][index]}" 嗎？`)) {
+                state[type].splice(index, 1);
+                saveState();
+                renderAllStations();
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem('user_stations_train', JSON.stringify(state.train));
+            localStorage.setItem('user_stations_bus', JSON.stringify(state.bus));
+            localStorage.setItem('user_stations_bike', JSON.stringify(state.bike));
+
+            // Also save prompt template changes when they happen (handler below)
+        }
+
+        // Auto-save prompt template on change
+        document.getElementById('promptTemplate').addEventListener('input', (e) => {
+            state.prompt = e.target.value;
+            localStorage.setItem('user_prompt_template', state.prompt);
+        });
+
+        // --- API & GPS Logic ---
+        function checkKeyStatus() {
+            const key = localStorage.getItem('user_gemini_key');
+            const sendBtn = document.getElementById('sendBtn');
+            const responseArea = document.getElementById('responseArea');
+            const keyInput = document.getElementById('apiKeyInput');
+
+            if (key) {
+                sendBtn.disabled = false;
+                responseArea.innerText = "✅ 金鑰已就緒，準備發送。";
+                // Hide key for privacy, show placeholder
+                if (keyInput.value === "") keyInput.placeholder = "金鑰已儲存 (隱藏)";
+            } else {
+                sendBtn.disabled = true;
+                responseArea.innerText = "⚠️ 尚未偵測到金鑰，請先輸入並儲存。";
+            }
         }
 
         function saveKey() {
             const key = document.getElementById('apiKeyInput').value.trim();
             if (key) {
                 localStorage.setItem('user_gemini_key', key);
-                checkKeyStatus(); // 儲存後立即更新按鈕狀態
-                document.getElementById('apiKeyInput').value = ""; // 安全性清空
-                displayStatus("✅ 金鑰已儲存！");
-            } else {
-                displayStatus("❌ 請輸入有效的金鑰內容。");
+                checkKeyStatus();
+                document.getElementById('apiKeyInput').value = "";
+                alert("金鑰已儲存！");
             }
         }
 
         function clearKey() {
             localStorage.removeItem('user_gemini_key');
-            document.getElementById('apiKeyInput').value = "";
-            checkKeyStatus(); // 清除後立即鎖定按鈕
+            checkKeyStatus();
+            location.reload();
+        }
+
+        async function getGPS() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    resolve("無法取得 GPS (瀏覽器不支援)");
+                } else {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            resolve(`${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`);
+                        },
+                        (error) => {
+                            console.warn("GPS Error:", error);
+                            resolve("無法取得 GPS (權限被拒或錯誤)");
+                        }
+                    );
+                }
+            });
         }
 
         async function askGemini() {
             const key = localStorage.getItem('user_gemini_key');
-            // 這裡加入您的偏好設定前綴
-            const userPrompt = document.getElementById('userInput').value;
-            const finalPrompt = `請以詳細步驟或列表形式回答，若涉及 YouBike 請僅列出站名與車量數。問題：${userPrompt}`;
+            if (!key) return alert("請先設定 API Key");
 
-            const responseArea = document.getElementById('responseArea');
             const sendBtn = document.getElementById('sendBtn');
-
-            if (!userPrompt) return displayStatus("❌ 請輸入問題。");
+            const responseArea = document.getElementById('responseArea');
 
             sendBtn.disabled = true;
-            sendBtn.innerText = "⏳ 思考中...";
-            displayStatus("⏳ 思考中...");
+            sendBtn.innerText = "📍 取得定位中...";
+            responseArea.innerText = "正在讀取 GPS 位置...";
 
             try {
-                // Modified to use gemini-1.5-flash as it is a stable and fast model
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${key}`;
+                // 1. Get Context
+                const gpsLocation = await getGPS();
+                const now = new Date().toLocaleString('zh-TW', { hour12: false });
+
+                // 2. Build Prompt
+                let finalPrompt = state.prompt
+                    .replace('{TIME}', now)
+                    .replace('{GPS}', gpsLocation)
+                    .replace('{TRAIN_LIST}', state.train.join('、') || "無")
+                    .replace('{BUS_LIST}', state.bus.join('、') || "無")
+                    .replace('{BIKE_LIST}', state.bike.join('、') || "無");
+
+                console.log("Sending Prompt:", finalPrompt);
+
+                sendBtn.innerText = "🤖 思考中...";
+                responseArea.innerText = `[送出查詢]\n${finalPrompt}\n\n[等待回應]...`;
+
+                // 3. Call API
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -253,17 +455,20 @@
                 });
 
                 const data = await response.json();
+
                 if (data.error) {
-                    displayStatus("❌ API 錯誤: " + data.error.message);
-                } else {
-                    responseArea.innerText = data.candidates[0].content.parts[0].text;
+                    throw new Error(data.error.message);
                 }
+
+                const resultText = data.candidates[0].content.parts[0].text;
+                responseArea.innerText = resultText;
+
             } catch (error) {
                 console.error(error);
-                displayStatus("❌ 連線異常，請檢查網路或金鑰是否正確。");
+                responseArea.innerText = "❌ 發生錯誤: " + error.message;
             } finally {
-                sendBtn.disabled = false; // 回傳後重新開啟
-                sendBtn.innerText = "發送查詢";
+                sendBtn.disabled = false;
+                sendBtn.innerText = "取得 GPS 並發送查詢";
             }
         }
     </script>

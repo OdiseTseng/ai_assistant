@@ -17,6 +17,7 @@
             --success-color: #22c55e;
             --danger-color: #ef4444;
             --input-bg: rgba(15, 23, 42, 0.8);
+            --modal-overlay: rgba(0, 0, 0, 0.7);
         }
 
         body {
@@ -113,11 +114,6 @@
             color: #fff;
         }
 
-        .btn-delete {
-            position: relative;
-            padding-right: 20px;
-        }
-
         .station-tag {
             display: inline-flex;
             align-items: center;
@@ -126,7 +122,6 @@
             border-radius: 20px;
             font-size: 0.9em;
             cursor: default;
-            /* Tags themselves aren't clickable for action in this version, just visual */
             position: relative;
         }
 
@@ -143,7 +138,9 @@
 
         /* Inputs */
         input[type="password"],
-        textarea {
+        textarea,
+        input[type="text"],
+        input[type="search"] {
             background-color: var(--input-bg);
             border: 1px solid var(--card-border);
             color: var(--text-color);
@@ -155,7 +152,7 @@
             font-family: inherit;
         }
 
-        input[type="password"]:focus,
+        input:focus,
         textarea:focus {
             outline: none;
             border-color: var(--accent-color);
@@ -213,10 +210,154 @@
             font-size: 0.8rem;
         }
 
+        /* MODAL STYLES */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--modal-overlay);
+            backdrop-filter: blur(4px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1e293b;
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 800px;
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            padding: 15px;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(30, 41, 59, 0.95);
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: var(--accent-color);
+        }
+
+        .modal-body {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .modal-sidebar {
+            width: 30%;
+            border-right: 1px solid var(--card-border);
+            overflow-y: auto;
+            background: rgba(15, 23, 42, 0.5);
+        }
+
+        .modal-main {
+            width: 70%;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .category-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .category-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .category-item.active {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .search-bar {
+            margin-bottom: 15px;
+        }
+
+        .station-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+        }
+
+        .grid-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .grid-item:hover {
+            border-color: var(--accent-color);
+            background: rgba(56, 189, 248, 0.1);
+        }
+
+        .input-group-modal {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .modal-close {
+            background: transparent;
+            border: none;
+            font-size: 1.5rem;
+            color: #8b949e;
+        }
+
+        .modal-close:hover {
+            color: white;
+            background: transparent;
+            transform: none;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .dashboard-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .modal-body {
+                flex-direction: column;
+            }
+
+            .modal-sidebar {
+                width: 100%;
+                height: 30%;
+                border-right: none;
+                border-bottom: 1px solid var(--card-border);
+            }
+
+            .modal-main {
+                width: 100%;
+                height: 70%;
             }
         }
     </style>
@@ -234,26 +375,20 @@
 
         <!-- Section 1: Train -->
         <div class="card">
-            <h2>🚄 火車時刻表 <button class="btn-add" onclick="addStation('train')">+</button></h2>
-            <div id="train-list" class="station-list">
-                <!-- Data populated by JS -->
-            </div>
+            <h2>🚄 火車時刻表 <button class="btn-add" onclick="openModal('train')">+</button></h2>
+            <div id="train-list" class="station-list"></div>
         </div>
 
         <!-- Section 2: Bus -->
         <div class="card">
-            <h2>🚌 公車時刻表 <button class="btn-add" onclick="addStation('bus')">+</button></h2>
-            <div id="bus-list" class="station-list">
-                <!-- Data populated by JS -->
-            </div>
+            <h2>🚌 公車時刻表 <button class="btn-add" onclick="openModal('bus')">+</button></h2>
+            <div id="bus-list" class="station-list"></div>
         </div>
 
         <!-- Section 3: YouBike -->
         <div class="card">
-            <h2>🚲 YouBike 站點 <button class="btn-add" onclick="addStation('bike')">+</button></h2>
-            <div id="bike-list" class="station-list">
-                <!-- Data populated by JS -->
-            </div>
+            <h2>🚲 YouBike 站點 <button class="btn-add" onclick="openModal('bike')">+</button></h2>
+            <div id="bike-list" class="station-list"></div>
         </div>
 
         <!-- Section 4: Custom Prompt -->
@@ -274,12 +409,35 @@
         </div>
 
         <!-- Footer -->
-        <div class="footer" id="versionInfo">
-            <!-- Version injected by JS -->
+        <div class="footer" id="versionInfo"></div>
+    </div>
+
+    <!-- MODAL -->
+    <div id="stationModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">選擇/新增站點</h3>
+                <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <!-- Left Sidebar -->
+                <div class="modal-sidebar" id="modalSidebar">
+                    <!-- Categories -->
+                </div>
+                <!-- Right Main Area -->
+                <div class="modal-main">
+                    <input type="text" id="modalSearch" class="search-bar" placeholder="搜尋站點...">
+                    <div id="modalGrid" class="station-grid">
+                        <!-- Stations -->
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
+    <!-- Scripts -->
     <script src="version.js"></script>
+    <script src="station_data.js"></script>
     <script>
         // --- State Management ---
         const DEFAULT_PROMPT = `現在時間 {TIME}，位置 {GPS}。
@@ -332,15 +490,6 @@
             }
         }
 
-        function addStation(type) {
-            const name = prompt(`請輸入新的${type === 'train' ? '火車' : type === 'bus' ? '公車' : 'YouBike'}站點名稱：`);
-            if (name && name.trim()) {
-                state[type].push(name.trim());
-                saveState();
-                renderAllStations();
-            }
-        }
-
         function removeStation(type, index) {
             if (confirm(`確定要刪除 "${state[type][index]}" 嗎？`)) {
                 state[type].splice(index, 1);
@@ -353,15 +502,132 @@
             localStorage.setItem('user_stations_train', JSON.stringify(state.train));
             localStorage.setItem('user_stations_bus', JSON.stringify(state.bus));
             localStorage.setItem('user_stations_bike', JSON.stringify(state.bike));
-
-            // Also save prompt template changes when they happen (handler below)
         }
 
-        // Auto-save prompt template on change
         document.getElementById('promptTemplate').addEventListener('input', (e) => {
             state.prompt = e.target.value;
             localStorage.setItem('user_prompt_template', state.prompt);
         });
+
+        // --- MODAL LOGIC ---
+        let currentModalType = '';
+        let currentCategory = '';
+
+        function openModal(type) {
+            currentModalType = type;
+            const titleMap = { train: '新增火車', bus: '新增公車', bike: '新增 YouBike' };
+            document.getElementById('modalTitle').innerText = titleMap[type];
+            document.getElementById('modalSearch').value = '';
+
+            const sidebar = document.getElementById('modalSidebar');
+            const grid = document.getElementById('modalGrid');
+            sidebar.innerHTML = '';
+            grid.innerHTML = '';
+
+            const data = STATION_DATA[type];
+
+            // Generate Categories (Sidebar)
+            if (data) {
+                Object.keys(data).forEach(cat => {
+                    const div = document.createElement('div');
+                    div.className = 'category-item';
+                    div.innerText = cat;
+                    div.onclick = () => selectCategory(cat);
+                    sidebar.appendChild(div);
+                });
+
+                // Select first category by default if available
+                const first = Object.keys(data)[0];
+                if (first) selectCategory(first);
+            } else {
+                sidebar.innerHTML = '<div style="padding:15px; color:#64748b">無分類</div>';
+            }
+
+            // Add Search Listener
+            document.getElementById('modalSearch').oninput = (e) => filterStations(e.target.value);
+
+            document.getElementById('stationModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('stationModal').classList.remove('active');
+        }
+
+        function selectCategory(cat) {
+            currentCategory = cat;
+            // Highlight sidebar
+            document.querySelectorAll('.category-item').forEach(el => {
+                el.classList.toggle('active', el.innerText === cat);
+            });
+
+            // Render grid
+            renderGrid(STATION_DATA[currentModalType][cat] || []);
+        }
+
+        function renderGrid(items) {
+            const grid = document.getElementById('modalGrid');
+            grid.innerHTML = '';
+
+            // Add custom input tip if needed (mostly for bus/bike search fallback)
+            // But since we have a search bar that acts as a custom adder, we handle it there.
+
+            items.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'grid-item';
+                div.innerText = item;
+                div.onclick = () => confirmAddStation(item);
+                grid.appendChild(div);
+            });
+        }
+
+        function filterStations(query) {
+            const grid = document.getElementById('modalGrid');
+            grid.innerHTML = '';
+
+            const data = STATION_DATA[currentModalType];
+            if (!query) {
+                if (currentCategory) selectCategory(currentCategory);
+                return;
+            }
+
+            // Fuzzy search across ALL categories for this type
+            let matches = new Set(); // Use Set for unique values
+
+            // 1. Search in presets
+            Object.values(data).forEach(list => {
+                list.forEach(item => {
+                    if (item.includes(query)) matches.add(item);
+                });
+            });
+
+            matches.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'grid-item';
+                div.innerText = item;
+                div.onclick = () => confirmAddStation(item);
+                grid.appendChild(div);
+            });
+
+            // 2. Allow adding custom if not found (or even if found)
+            const customDiv = document.createElement('div');
+            customDiv.className = 'grid-item';
+            customDiv.style.borderColor = 'var(--success-color)';
+            customDiv.style.color = 'var(--success-color)';
+            customDiv.innerHTML = `<b>+ 新增 "${query}"</b><br><small>不在清單中？直接新增</small>`;
+            customDiv.onclick = () => confirmAddStation(query);
+
+            // Always show custom add option when searching
+            grid.prepend(customDiv);
+        }
+
+        function confirmAddStation(name) {
+            if (!name) return;
+            state[currentModalType].push(name);
+            saveState();
+            renderAllStations();
+            closeModal();
+            // Optional: flash status
+        }
 
         // --- API & GPS Logic ---
         function checkKeyStatus() {
@@ -373,7 +639,6 @@
             if (key) {
                 sendBtn.disabled = false;
                 responseArea.innerText = "✅ 金鑰已就緒，準備發送。";
-                // Hide key for privacy, show placeholder
                 if (keyInput.value === "") keyInput.placeholder = "金鑰已儲存 (隱藏)";
             } else {
                 sendBtn.disabled = true;
@@ -427,11 +692,9 @@
             responseArea.innerText = "正在讀取 GPS 位置...";
 
             try {
-                // 1. Get Context
                 const gpsLocation = await getGPS();
                 const now = new Date().toLocaleString('zh-TW', { hour12: false });
 
-                // 2. Build Prompt
                 let finalPrompt = state.prompt
                     .replace('{TIME}', now)
                     .replace('{GPS}', gpsLocation)
@@ -444,7 +707,6 @@
                 sendBtn.innerText = "🤖 思考中...";
                 responseArea.innerText = `[送出查詢]\n${finalPrompt}\n\n[等待回應]...`;
 
-                // 3. Call API
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${key}`;
                 const response = await fetch(url, {
                     method: 'POST',

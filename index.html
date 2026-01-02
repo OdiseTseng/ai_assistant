@@ -167,7 +167,13 @@
         <div id="responseArea">
             狀態：等待金鑰輸入...
         </div>
+
+        <div id="versionInfo" style="margin-top: 20px; text-align: center; font-size: 12px; color: #8b949e;">
+            <!-- Version info will be injected here -->
+        </div>
     </div>
+
+    <script src="version.js"></script>
 
     <script>
         // 核心功能：檢查金鑰狀態並切換按鈕
@@ -190,7 +196,12 @@
         }
 
         // 網頁載入時自動檢查
-        window.onload = checkKeyStatus;
+        window.onload = function () {
+            checkKeyStatus();
+            if (typeof BUILD_INFO !== 'undefined') {
+                document.getElementById('versionInfo').innerText = `最後更新：${BUILD_INFO.time}`;
+            }
+        };
 
         function displayStatus(msg) {
             document.getElementById('responseArea').innerText = msg;

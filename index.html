@@ -200,6 +200,7 @@
             checkKeyStatus();
             if (typeof BUILD_INFO !== 'undefined') {
                 document.getElementById('versionInfo').innerText = `最後更新：${BUILD_INFO.time}`;
+                document.title = `Odise Gemini Assistant (${BUILD_INFO.time})`;
             }
         };
 

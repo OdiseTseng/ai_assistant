@@ -344,6 +344,13 @@
             font-weight: bold;
         }
 
+        .coord-hint {
+            display: block;
+            font-size: 0.7em;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
         .input-group-modal {
             margin-top: 20px;
             display: flex;
@@ -514,8 +521,9 @@ JSON 格式要求：
             prompt: localStorage.getItem('user_prompt_template') || DEFAULT_PROMPT
         };
 
-        // --- Init ---
+        // --- Init & Migration ---
         window.onload = function () {
+            migrateData();
             checkKeyStatus();
             renderAllStations();
             document.getElementById('promptTemplate').value = state.prompt;
@@ -527,6 +535,28 @@ JSON 格式要求：
             }
         };
 
+        function migrateData() {
+            let changed = false;
+            ['train', 'bus', 'bike'].forEach(type => {
+                if (state[type] && state[type].length > 0) {
+                    // Check if first item is string (legacy format)
+                    if (typeof state[type][0] === 'string') {
+                        state[type] = state[type].map(s => ({
+                            name: s,
+                            lat: null,
+                            lng: null
+                        }));
+                        changed = true;
+                    }
+                }
+            });
+            if (changed) saveState();
+        }
+
+        function getStationName(station) {
+            return station && typeof station === 'object' ? station.name : station;
+        }
+
         // --- Station Dashboard Logic ---
         function renderAllStations() {
             renderList('train', state.train);
@@ -537,10 +567,11 @@ JSON 格式要求：
         function renderList(type, list) {
             const container = document.getElementById(`${type}-list`);
             container.innerHTML = '';
-            list.forEach((item, index) => {
+            list.forEach((station, index) => {
                 const tag = document.createElement('div');
                 tag.className = 'station-tag';
-                tag.innerHTML = `${item} <span class="remove-icon" onclick="removeStation('${type}', ${index})">×</span>`;
+                const name = getStationName(station);
+                tag.innerHTML = `${name} <span class="remove-icon" onclick="removeStation('${type}', ${index})">×</span>`;
                 container.appendChild(tag);
             });
             if (list.length === 0) {
@@ -549,7 +580,9 @@ JSON 格式要求：
         }
 
         function removeStation(type, index) {
-            if (confirm(`確定要刪除 "${state[type][index]}" 嗎？`)) {
+            const station = state[type][index];
+            const name = getStationName(station);
+            if (confirm(`確定要刪除 "${name}" 嗎？`)) {
                 state[type].splice(index, 1);
                 saveState();
                 renderAllStations();
@@ -618,7 +651,6 @@ JSON 格式要求：
             searchInput.oninput = (e) => filterStations(e.target.value);
 
             document.getElementById('stationModal').classList.add('active');
-            // searchInput.focus(); // Removed focus to avoid mobile keyboard popups immediately unless desired
         }
 
         function closeModal() {
@@ -656,27 +688,40 @@ JSON 格式要求：
         }
 
         // --- Core Toggle Logic ---
-        function createStationItem(name) {
+        function createStationItem(station) {
             const div = document.createElement('div');
             div.className = 'grid-item';
+
+            const name = getStationName(station);
             div.innerText = name;
 
+            // Show GPS hint if available
+            if (station.lat && station.lng) {
+                const hint = document.createElement('span');
+                hint.className = 'coord-hint';
+                hint.innerText = '📍'; // just a symbol for cleaner UI
+                div.appendChild(hint);
+            }
+
             const list = state[currentModalType];
-            if (list.includes(name)) {
+            // Check existence by name
+            if (list.some(s => getStationName(s) === name)) {
                 div.classList.add('selected');
             }
 
-            div.onclick = () => toggleStation(name);
+            div.onclick = () => toggleStation(station);
             return div;
         }
 
-        function toggleStation(name) {
+        function toggleStation(station) {
             const list = state[currentModalType];
-            const index = list.indexOf(name);
+            const name = getStationName(station);
+            const index = list.findIndex(s => getStationName(s) === name);
 
             if (index === -1) {
-                // Add
-                list.push(name);
+                // Add - ensure we store object
+                const newStation = typeof station === 'object' ? station : { name: station, lat: null, lng: null };
+                list.push(newStation);
             } else {
                 // Remove
                 list.splice(index, 1);
@@ -729,21 +774,26 @@ JSON 格式要求：
 
             // 1. Local Fuzzy Search
             const data = STATION_DATA[currentModalType];
-            let matches = new Set();
+            let matches = []; // Array of objects
             if (data) {
                 Object.values(data).forEach(list => {
                     list.forEach(item => {
-                        if (item.includes(query)) matches.add(item);
+                        const name = getStationName(item);
+                        if (name.includes(query)) matches.push(item);
                     });
                 });
             }
 
-            matches.forEach(item => {
+            // Removing duplicates if any names are same (not expected for train, but good practice)
+            const unique = new Map();
+            matches.forEach(m => unique.set(getStationName(m), m));
+
+            unique.forEach(item => {
                 grid.appendChild(createStationItem(item));
             });
 
             // 2. AI Search Option
-            if (matches.size === 0 && query) {
+            if (unique.size === 0 && query) {
                 const aiSearch = document.createElement('div');
                 aiSearch.className = 'grid-item';
                 aiSearch.style.borderColor = 'var(--accent-color)';
@@ -778,11 +828,11 @@ JSON 格式要求：
                     extraInstruction = '注意：請「排除」捷運站或輕軌站，只列出「台鐵火車站」。';
                 }
 
-                const prompt = `請列出 5-10 個名稱中包含「${query}」的「${typeName}」完整名稱。
+                const prompt = `請列出 5 個名稱中包含「${query}」的「${typeName}」，並附上該站點的緯經度 (latitude, longitude)。
 ${extraInstruction}
-請務必只回傳 JSON 字串陣列 (String Array)，不要有任何 Markdown 或其他文字。
-若找不到完全匹配，請列出最接近的。
-範例：["車站A", "車站B"]`;
+請務必只回傳 JSON 物件陣列 (Array of Objects)，不要有任何 Markdown 或其他文字。
+欄位：name, lat, lng
+範例：[{"name": "臺北", "lat": 25.0478, "lng": 121.5170}] (若是未知座標請填 null)`;
 
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${key}`;
                 const response = await fetch(url, {
@@ -832,7 +882,9 @@ ${extraInstruction}
 
                 if (Array.isArray(stations) && stations.length > 0) {
                     stations.forEach(item => {
-                        grid.appendChild(createStationItem(item));
+                        // Ensure item is an object and has name
+                        const newItem = typeof item === 'string' ? { name: item, lat: null, lng: null } : item;
+                        grid.appendChild(createStationItem(newItem));
                     });
                 } else {
                     const noRes = document.createElement('div');
@@ -926,12 +978,17 @@ ${extraInstruction}
                 const gpsLocation = await getGPS();
                 const now = new Date().toLocaleString('zh-TW', { hour12: false });
 
+                // Extract names for prompt
+                const trainList = state.train.map(getStationName).join('、') || "無";
+                const busList = state.bus.map(getStationName).join('、') || "無";
+                const bikeList = state.bike.map(getStationName).join('、') || "無";
+
                 let finalPrompt = state.prompt
                     .replace('{TIME}', now)
                     .replace('{GPS}', gpsLocation)
-                    .replace('{TRAIN_LIST}', state.train.join('、') || "無")
-                    .replace('{BUS_LIST}', state.bus.join('、') || "無")
-                    .replace('{BIKE_LIST}', state.bike.join('、') || "無");
+                    .replace('{TRAIN_LIST}', trainList)
+                    .replace('{BUS_LIST}', busList)
+                    .replace('{BIKE_LIST}', bikeList);
 
                 console.log("Sending Prompt:", finalPrompt);
 

@@ -320,11 +320,28 @@
             transition: 0.2s;
             border: 1px solid transparent;
             font-size: 0.95rem;
+            position: relative;
+            /* For Pseudo-element */
         }
 
         .grid-item:hover {
             border-color: var(--accent-color);
             background: rgba(56, 189, 248, 0.1);
+        }
+
+        .grid-item.selected {
+            border-color: var(--success-color);
+            background: rgba(34, 197, 94, 0.1);
+            color: var(--success-color);
+        }
+
+        .grid-item.selected::after {
+            content: '✓';
+            position: absolute;
+            top: 2px;
+            right: 5px;
+            font-size: 0.8em;
+            font-weight: bold;
         }
 
         .input-group-modal {
@@ -510,7 +527,7 @@ JSON 格式要求：
             }
         };
 
-        // --- Station Logic ---
+        // --- Station Dashboard Logic ---
         function renderAllStations() {
             renderList('train', state.train);
             renderList('bus', state.bus);
@@ -562,15 +579,25 @@ JSON 格式要求：
             // Reset Search
             const searchInput = document.getElementById('modalSearch');
             searchInput.value = '';
-            searchInput.oninput = (e) => filterStations(e.target.value);
             document.getElementById('clearSearchBtn').style.display = 'none';
+            document.getElementById('modalHelpText').style.display = 'none';
 
             // Sidebar & Grid
             const sidebar = document.getElementById('modalSidebar');
             sidebar.innerHTML = '';
-            const data = STATION_DATA[type];
 
+            // 1. Always add "Added Stations" Category
+            const addedDiv = document.createElement('div');
+            addedDiv.className = 'category-item';
+            addedDiv.innerText = '已新增站點列表';
+            addedDiv.onclick = () => selectCategory('ADDED_LIST');
+            sidebar.appendChild(addedDiv);
+
+            // 2. Generate Data Categories (Sidebar)
+            const data = STATION_DATA[type];
+            let hasData = false;
             if (data && Object.keys(data).length > 0) {
+                hasData = true;
                 Object.keys(data).forEach(cat => {
                     const div = document.createElement('div');
                     div.className = 'category-item';
@@ -578,15 +605,20 @@ JSON 格式要求：
                     div.onclick = () => selectCategory(cat);
                     sidebar.appendChild(div);
                 });
-                selectCategory(Object.keys(data)[0]);
-            } else {
-                // Bus/Bike typically have no presets
-                sidebar.innerHTML = '<div style="padding:15px; color:#64748b; font-size:0.9em;">請直接搜尋站點名稱</div>';
-                renderGrid([]);
             }
 
+            // Default select
+            if (hasData) {
+                selectCategory(Object.keys(data)[0]);
+            } else {
+                selectCategory('ADDED_LIST');
+            }
+
+            // Add Search Listener
+            searchInput.oninput = (e) => filterStations(e.target.value);
+
             document.getElementById('stationModal').classList.add('active');
-            searchInput.focus();
+            // searchInput.focus(); // Removed focus to avoid mobile keyboard popups immediately unless desired
         }
 
         function closeModal() {
@@ -600,22 +632,81 @@ JSON 格式要求：
 
         function selectCategory(cat) {
             currentCategory = cat;
+            // Highlight sidebar
             document.querySelectorAll('.category-item').forEach(el => {
-                el.classList.toggle('active', el.innerText === cat);
+                const isMatch = (cat === 'ADDED_LIST' && el.innerText === '已新增站點列表') || el.innerText === cat;
+                el.classList.toggle('active', isMatch);
             });
-            renderGrid(STATION_DATA[currentModalType][cat] || []);
+
+            // Help Text Logic
+            const helpText = document.getElementById('modalHelpText');
+            if (currentModalType === 'bike' || currentModalType === 'bus') {
+                helpText.style.display = 'block';
+                helpText.innerText = "💡 提示：請輸入完整的站點名稱，例如：捷運臺北101/世貿站(2號出口)";
+            } else {
+                helpText.style.display = 'none';
+            }
+
+            // Render grid
+            if (cat === 'ADDED_LIST') {
+                renderGrid(state[currentModalType]);
+            } else {
+                renderGrid(STATION_DATA[currentModalType][cat] || []);
+            }
+        }
+
+        // --- Core Toggle Logic ---
+        function createStationItem(name) {
+            const div = document.createElement('div');
+            div.className = 'grid-item';
+            div.innerText = name;
+
+            const list = state[currentModalType];
+            if (list.includes(name)) {
+                div.classList.add('selected');
+            }
+
+            div.onclick = () => toggleStation(name);
+            return div;
+        }
+
+        function toggleStation(name) {
+            const list = state[currentModalType];
+            const index = list.indexOf(name);
+
+            if (index === -1) {
+                // Add
+                list.push(name);
+            } else {
+                // Remove
+                list.splice(index, 1);
+            }
+
+            saveState();
+            renderAllStations(); // Update dashboard
+
+            // Refresh Modal View
+            const searchVal = document.getElementById('modalSearch').value;
+            if (searchVal) {
+                filterStations(searchVal);
+            } else if (currentCategory === 'ADDED_LIST') {
+                selectCategory('ADDED_LIST');
+            } else {
+                selectCategory(currentCategory);
+            }
         }
 
         function renderGrid(items) {
             const grid = document.getElementById('modalGrid');
             grid.innerHTML = '';
 
+            if (!items || items.length === 0) {
+                grid.innerHTML = '<div style="padding:15px; color:#64748b; font-size: 0.9em;">(請新增)</div>';
+                return;
+            }
+
             items.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'grid-item';
-                div.innerText = item;
-                div.onclick = () => confirmAddStation(item);
-                grid.appendChild(div);
+                grid.appendChild(createStationItem(item));
             });
         }
 
@@ -623,9 +714,12 @@ JSON 格式要求：
             const grid = document.getElementById('modalGrid');
             document.getElementById('clearSearchBtn').style.display = query ? 'block' : 'none';
             grid.innerHTML = '';
+            document.getElementById('modalHelpText').style.display = query ? 'none' : 'block';
 
             if (!query) {
-                if (currentCategory && STATION_DATA[currentModalType][currentCategory]) {
+                if (currentCategory === 'ADDED_LIST') {
+                    selectCategory('ADDED_LIST');
+                } else if (currentCategory && STATION_DATA[currentModalType] && STATION_DATA[currentModalType][currentCategory]) {
                     selectCategory(currentCategory);
                 } else {
                     grid.innerHTML = '<div style="padding:20px; color:#64748b; width:100%; text-align:center;">請輸入關鍵字搜尋</div>';
@@ -644,33 +738,22 @@ JSON 格式要求：
                 });
             }
 
-            // Render Local Matches
             matches.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'grid-item';
-                div.innerText = item;
-                div.onclick = () => confirmAddStation(item);
-                grid.appendChild(div);
+                grid.appendChild(createStationItem(item));
             });
 
-            // 2. Direct Add Option
-            const directAdd = document.createElement('div');
-            directAdd.className = 'grid-item';
-            directAdd.style.borderColor = 'var(--text-color)';
-            directAdd.innerHTML = `<b>+ 直接新增 "${query}"</b>`;
-            directAdd.onclick = () => confirmAddStation(query);
-            grid.appendChild(directAdd);
-
-            // 3. AI Search Option (For potentially invalid names)
-            const aiSearch = document.createElement('div');
-            aiSearch.className = 'grid-item';
-            aiSearch.style.borderColor = 'var(--accent-color)';
-            aiSearch.style.color = 'var(--accent-color)';
-            aiSearch.style.gridColumn = "1 / -1"; // Full width
-            aiSearch.style.marginTop = "10px";
-            aiSearch.innerText = `🔍 AI 搜尋: 哪些站包含 "${query}"？`;
-            aiSearch.onclick = () => askGeminiForStations(query);
-            grid.appendChild(aiSearch);
+            // 2. AI Search Option
+            if (matches.size === 0 && query) {
+                const aiSearch = document.createElement('div');
+                aiSearch.className = 'grid-item';
+                aiSearch.style.borderColor = 'var(--accent-color)';
+                aiSearch.style.color = 'var(--accent-color)';
+                aiSearch.style.gridColumn = "1 / -1";
+                aiSearch.style.marginTop = "10px";
+                aiSearch.innerText = `🔍 AI 搜尋: 哪些站包含 "${query}"？`;
+                aiSearch.onclick = () => askGeminiForStations(query);
+                grid.appendChild(aiSearch);
+            }
         }
 
         async function askGeminiForStations(query) {
@@ -684,10 +767,22 @@ JSON 格式要求：
             loading.style.display = 'block';
 
             try {
-                const typeName = currentModalType === 'bus' ? '雙北公車路線或站牌' : (currentModalType === 'bike' ? '雙北 YouBike 2.0 站點' : '台灣火車站點');
+                let typeName = '';
+                let extraInstruction = '';
+                if (currentModalType === 'bus') {
+                    typeName = '台灣公車路線或站牌';
+                } else if (currentModalType === 'bike') {
+                    typeName = '台灣 YouBike 2.0 站點';
+                } else {
+                    typeName = '台灣火車站點';
+                    extraInstruction = '注意：請「排除」捷運站或輕軌站，只列出「台鐵火車站」。';
+                }
+
                 const prompt = `請列出 5-10 個名稱中包含「${query}」的「${typeName}」完整名稱。
+${extraInstruction}
 請務必只回傳 JSON 字串陣列 (String Array)，不要有任何 Markdown 或其他文字。
-範例：["捷運市政府站(3號出口)", "市政府(市府路)"]`;
+若找不到完全匹配，請列出最接近的。
+範例：["車站A", "車站B"]`;
 
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${key}`;
                 const response = await fetch(url, {
@@ -697,27 +792,55 @@ JSON 格式要求：
                 });
 
                 const data = await response.json();
-                const text = data.candidates[0].content.parts[0].text;
+
+                if (data.error) throw new Error(data.error.message);
+
+                const text = data.candidates && data.candidates[0].content.parts[0].text;
+                if (!text) throw new Error("無回應文字");
+
                 const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
-                const stations = JSON.parse(cleanJson);
+                let stations = [];
+                try {
+                    stations = JSON.parse(cleanJson);
+                } catch (e) {
+                    console.warn("Parsing failed", text);
+                }
 
-                if (Array.isArray(stations)) {
-                    grid.innerHTML = '';
+                grid.innerHTML = '';
 
-                    const header = document.createElement('div');
-                    header.style.gridColumn = "1 / -1";
-                    header.style.color = "var(--accent-color)";
-                    header.style.marginBottom = "5px";
-                    header.innerText = `🤖 AI 搜尋結果 ("${query}"):`;
-                    grid.appendChild(header);
+                const header = document.createElement('div');
+                header.style.gridColumn = "1 / -1";
+                header.style.color = "var(--accent-color)";
+                header.style.marginBottom = "5px";
+                header.style.display = "flex";
+                header.style.justifyContent = "space-between";
+                header.innerHTML = `
+                    <span>🤖 AI 搜尋結果 ("${query}"):</span>
+                    <button id="toggleDebugBtn" style="padding:2px 8px; font-size:12px; height:auto; background:rgba(255,255,255,0.1); border:1px solid #555; border-radius:4px; color:#aaa; cursor:pointer;">Info</button>
+                    <div id="aiDebugRaw" style="display:none; width:100%; white-space:pre-wrap; background:rgba(0,0,0,0.3); padding:5px; margin-top:5px; font-size:0.8em; color:#ccc;"></div>
+                `;
 
+                header.querySelector('#aiDebugRaw').innerText = text;
+                header.querySelector('#toggleDebugBtn').onclick = (e) => {
+                    e.stopPropagation();
+                    const raw = header.querySelector('#aiDebugRaw');
+                    raw.style.display = raw.style.display === 'none' ? 'block' : 'none';
+                    e.target.style.color = raw.style.display === 'block' ? '#fff' : '#aaa';
+                };
+
+                grid.appendChild(header);
+
+                if (Array.isArray(stations) && stations.length > 0) {
                     stations.forEach(item => {
-                        const div = document.createElement('div');
-                        div.className = 'grid-item';
-                        div.innerText = item;
-                        div.onclick = () => confirmAddStation(item);
-                        grid.appendChild(div);
+                        grid.appendChild(createStationItem(item));
                     });
+                } else {
+                    const noRes = document.createElement('div');
+                    noRes.style.gridColumn = "1 / -1";
+                    noRes.style.textAlign = "center";
+                    noRes.style.color = "#64748b";
+                    noRes.innerText = "無有效結果，請查看 Info";
+                    grid.appendChild(noRes);
                 }
 
             } catch (e) {
@@ -727,14 +850,6 @@ JSON 格式要求：
                 loading.style.display = 'none';
                 grid.style.display = 'grid';
             }
-        }
-
-        function confirmAddStation(name) {
-            if (!name) return;
-            state[currentModalType].push(name);
-            saveState();
-            renderAllStations();
-            closeModal();
         }
 
         // --- API & GPS Logic ---
@@ -884,7 +999,7 @@ JSON 格式要求：
             items.forEach(text => {
                 const div = document.createElement('div');
                 div.style.padding = "8px 0";
-                div.style.borderBottom = "1px solid rgba(255,255,255,0.05)";
+                div.style.borderBottom = "1px solid rgba(255, 255, 255, 0.05)";
                 div.style.fontSize = "0.95em";
                 div.innerText = text;
                 container.appendChild(div);

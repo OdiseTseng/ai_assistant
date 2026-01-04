@@ -4,7 +4,19 @@
 
 This document serves as a persistent record of our conversations, allowing you to access context and history across different machines (Windows/Mac) by syncing this repository.
 
-## 1. UI Personalization & Last Mile Settings
+## 1. Expanding & Refactoring MRT Data
+**Date:** 2026-01-05
+**ID:** `expanding_mrt_data_and_refactoring`
+
+**Objective:**
+Expand the application's transport capabilities by adding comprehensive MRT data and implementing a hierarchical data structure for better usability.
+
+**Key Actions:**
+- **MRT Data Expansion**: Populated `station_data.js` with complete station lists for Taipei, Taoyuan, Taichung, and Kaohsiung.
+- **Hierarchical Refactoring**: Reorganized MRT data into `City -> Line -> Stations`.
+- **UI Logic Update**: Updated `index.html` to handle hierarchical navigation (Folders for Lines) and recursive search.
+
+## 2. UI Personalization & Last Mile Settings
 **Date:** 2026-01-03
 **ID:** `ui_refactor_and_personal_settings`
 

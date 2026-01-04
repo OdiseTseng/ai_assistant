@@ -541,6 +541,13 @@
                     <div id="train-result" class="result-box"></div>
                 </div>
 
+                <!-- Section 3: MRT (New) -->
+                <div class="card">
+                    <h2>捷運 <button class="btn-add" onclick="openStationModal('mrt')">+</button></h2>
+                    <div id="mrt-list" class="station-list"></div>
+                    <div id="mrt-result" class="result-box"></div>
+                </div>
+
                 <!-- Section 3: Bus -->
                 <div class="card">
                     <h2>🚌 公車 <button class="btn-add" onclick="openStationModal('bus')">+</button></h2>
@@ -553,6 +560,14 @@
                     <h2>🚲 YouBike <button class="btn-add" onclick="openStationModal('bike')">+</button></h2>
                     <div id="bike-list" class="station-list"></div>
                     <div id="bike-result" class="result-box"></div>
+                </div>
+
+                <!-- Section 5: Integrated Itinerary (New) -->
+                <div class="card full-width" style="margin-top:20px; border-color: var(--accent-color);">
+                    <h2>🚩 最佳轉乘方案 (未來2小時)</h2>
+                    <div id="itinerary-result" class="result-box" style="padding:15px; min-height:100px;">
+                        <span style="color:#666">等待查詢...</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -607,6 +622,7 @@
                     <span class="form-sub-label" style="margin-top:10px;">交通工具組合 (途中)</span>
                     <div class="checkbox-group">
                         <label class="checkbox-label"><input type="checkbox" name="workTrans" value="train"> 火車</label>
+                        <label class="checkbox-label"><input type="checkbox" name="workTrans" value="mrt"> 捷運</label>
                         <label class="checkbox-label"><input type="checkbox" name="workTrans" value="bus"> 公車</label>
                         <label class="checkbox-label"><input type="checkbox" name="workTrans" value="bike">
                             YouBike</label>
@@ -626,6 +642,8 @@
                         <div class="checkbox-group">
                             <label class="checkbox-label"><input type="checkbox" name="workLmTrans" value="train">
                                 火車</label>
+                            <label class="checkbox-label"><input type="checkbox" name="workLmTrans" value="mrt">
+                                捷運</label>
                             <label class="checkbox-label"><input type="checkbox" name="workLmTrans" value="bus">
                                 公車</label>
                             <label class="checkbox-label"><input type="checkbox" name="workLmTrans" value="bike">
@@ -643,6 +661,7 @@
                     <span class="form-sub-label" style="margin-top:10px;">交通工具組合 (途中)</span>
                     <div class="checkbox-group">
                         <label class="checkbox-label"><input type="checkbox" name="homeTrans" value="train"> 火車</label>
+                        <label class="checkbox-label"><input type="checkbox" name="homeTrans" value="mrt"> 捷運</label>
                         <label class="checkbox-label"><input type="checkbox" name="homeTrans" value="bus"> 公車</label>
                         <label class="checkbox-label"><input type="checkbox" name="homeTrans" value="bike">
                             YouBike</label>
@@ -662,6 +681,8 @@
                         <div class="checkbox-group">
                             <label class="checkbox-label"><input type="checkbox" name="homeLmTrans" value="train">
                                 火車</label>
+                            <label class="checkbox-label"><input type="checkbox" name="homeLmTrans" value="mrt">
+                                捷運</label>
                             <label class="checkbox-label"><input type="checkbox" name="homeLmTrans" value="bus">
                                 公車</label>
                             <label class="checkbox-label"><input type="checkbox" name="homeLmTrans" value="bike">
@@ -684,14 +705,15 @@
             apiKey: "",
             workTime: "09:00",
             homeTime: "18:00",
-            workTrans: ["train", "bus", "bike"],
-            homeTrans: ["train", "bus", "bike"],
+            workTrans: ["train", "mrt", "bus", "bike"],
+            homeTrans: ["train", "mrt", "bus", "bike"],
             workLastMile: { name: "", trans: [], coords: null },
             homeLastMile: { name: "", trans: [], coords: null }
         };
 
         const state = {
             train: [], // Loaded in init
+            mrt: [],
             bus: [],
             bike: [],
             settings: DEFAULT_SETTINGS
@@ -714,6 +736,9 @@
             updatePromptPreview();
             checkKeyStatus();
 
+            // Auto-open settings if incomplete
+            checkSettingsAndPrompt();
+
             // Version
             if (typeof BUILD_INFO !== 'undefined') {
                 document.getElementById('versionInfo').innerText = `v${BUILD_INFO.time}`;
@@ -723,12 +748,13 @@
         function loadState() {
             // Stations
             state.train = JSON.parse(localStorage.getItem('user_stations_train')) || [];
+            state.mrt = JSON.parse(localStorage.getItem('user_stations_mrt')) || [];
             state.bus = JSON.parse(localStorage.getItem('user_stations_bus')) || [];
             state.bike = JSON.parse(localStorage.getItem('user_stations_bike')) || [];
 
             // Legacy Data Migration (String -> Object)
-            ['train', 'bus', 'bike'].forEach(type => {
-                if (state[type].length > 0 && typeof state[type][0] === 'string') {
+            ['train', 'mrt', 'bus', 'bike'].forEach(type => {
+                if (state[type] && state[type].length > 0 && typeof state[type][0] === 'string') {
                     state[type] = state[type].map(s => ({ name: s, lat: null, lng: null }));
                 }
             });
@@ -755,6 +781,7 @@
 
         function saveState() {
             localStorage.setItem('user_stations_train', JSON.stringify(state.train));
+            localStorage.setItem('user_stations_mrt', JSON.stringify(state.mrt));
             localStorage.setItem('user_stations_bus', JSON.stringify(state.bus));
             localStorage.setItem('user_stations_bike', JSON.stringify(state.bike));
             localStorage.setItem('user_settings', JSON.stringify(state.settings));
@@ -941,17 +968,30 @@
             }
         }
 
+        function checkSettingsAndPrompt() {
+            const s = state.settings;
+            // Check if any critical setting is missing
+            const missingApiKey = !s.apiKey;
+            const missingWork = !s.workLastMile || !s.workLastMile.name;
+            const missingHome = !s.homeLastMile || !s.homeLastMile.name;
+
+            if (missingApiKey || missingWork || missingHome) {
+                console.log("Settings incomplete, opening modal...");
+                openSettings(); // This function is already defined
+            }
+        }
+
         // --- Modal & Main Logic ---
-        // (Same as before)
         let currentModalType = '';
-        let currentCategory = '';
+        let currentCategory = ''; // Top level (City)
+        // No sub-category state needed if we just render grid from data, 
+        // but maybe useful for "Back". For now, clicking Sidebar resets to top.
 
         function openStationModal(type) {
             currentModalType = type;
             document.getElementById('stationModal').classList.add('active');
-            document.getElementById('modalTitle').innerText = { train: '新增火車', bus: '新增公車', bike: '新增 YouBike' }[type];
+            document.getElementById('modalTitle').innerText = { train: '新增火車', mrt: '新增捷運', bus: '新增公車', bike: '新增 YouBike' }[type];
 
-            // Init Sidebar
             const sidebar = document.getElementById('modalSidebar');
             sidebar.innerHTML = '';
 
@@ -972,6 +1012,7 @@
                     div.onclick = () => selectCategory(k);
                     sidebar.appendChild(div);
                 });
+                // Select first one by default
                 selectCategory(Object.keys(data)[0]);
             } else {
                 selectCategory('ADDED');
@@ -995,14 +1036,46 @@
 
             if (cat === 'ADDED') {
                 renderGrid(state[currentModalType]);
-            } else {
-                renderGrid(STATION_DATA[currentModalType][cat] || []);
+                return;
             }
+
+            const data = STATION_DATA[currentModalType][cat] || [];
+
+            // Check if nested (City -> Line -> Stations) or flat (City -> Stations)
+            if (Array.isArray(data)) {
+                renderGrid(data);
+            } else if (typeof data === 'object') {
+                renderSubCategoryGrid(data);
+            }
+        }
+
+        // Render "Folder" view for Lines
+        function renderSubCategoryGrid(subData) {
+            const grid = document.getElementById('modalGrid');
+            grid.innerHTML = '';
+
+            // subData keys are Line Names
+            Object.keys(subData).forEach(lineName => {
+                const div = document.createElement('div');
+                div.className = 'grid-item';
+                div.style.background = 'rgba(56, 189, 248, 0.15)'; // Distinct color
+                div.style.borderColor = 'var(--accent-color)';
+                div.innerText = lineName;
+                div.innerHTML += '<span style="display:block;font-size:0.8em;color:#aaf">📂 點擊查看站點</span>';
+
+                div.onclick = () => renderGrid(subData[lineName]);
+                grid.appendChild(div);
+            });
         }
 
         function renderGrid(items) {
             const grid = document.getElementById('modalGrid');
             grid.innerHTML = '';
+
+            if (!items || items.length === 0) {
+                grid.innerHTML = '<span style="color:#666; grid-column:1/-1; text-align:center;">無資料</span>';
+                return;
+            }
 
             items.forEach(item => {
                 const name = item.name || item; // handle mixed
@@ -1037,9 +1110,45 @@
 
             saveState();
             renderAllStations();
-            // Refresh grid
-            if (document.getElementById('modalSearch').value) filterStations(document.getElementById('modalSearch').value);
-            else selectCategory(currentCategory);
+
+            // Refresh logic: if searching, re-filter; if in sub-cat, re-render?
+            // Simple approach: if search active, refresh search. 
+            // If normal view, we need to know if we are in Grid or SubGrid.
+            // But 'toggleStation' only happens in Grid (Leaf). So we can just re-apply selection style or re-render.
+            // Re-rendering entire grid is easiest but might lose scroll. 
+            // Let's just toggle class for instant feedback if we are in Grid view.
+            if (document.getElementById('modalSearch').value) {
+                filterStations(document.getElementById('modalSearch').value);
+            } else {
+                // We don't know easily which specific list we are viewing without state tracking.
+                // But generally users click, it toggles.
+                // Let's just re-trigger the click (visual update) or simple re-render.
+                // Since 'renderGrid' takes 'items', and we don't have 'items' stored globally...
+                // We'll trust the user sees the border change. 
+                // Actually, let's just re-run the render logic if we knew the context.
+                // Given complexity, let's just manually update the class of the clicked element?
+                // Hard to get the element reference here. 
+                // Let's brute force re-render if we can. 
+                // Issue: We don't know "current items". 
+                // Let's just update ALL grid items' class based on state.
+                updateGridSelection();
+            }
+        }
+
+        function updateGridSelection() {
+            const list = state[currentModalType];
+            document.querySelectorAll('#modalGrid .grid-item').forEach(div => {
+                // Text could have extra HTML, so check strict content or store data-name
+                // Simpler: iterate rendered items? No.
+                // We used innerText = name.
+                // Let's match by innerText (ignoring the span)
+                const text = div.innerText.split('\n')[0]; // name
+                if (list.some(s => (s.name || s) === text)) {
+                    div.classList.add('selected');
+                } else {
+                    div.classList.remove('selected');
+                }
+            });
         }
 
         function filterStations(query) {
@@ -1052,21 +1161,34 @@
                 return;
             }
 
-            // Local Search
+            // Recursive Search
+            const searchIn = (objOrArray) => {
+                let res = [];
+                if (Array.isArray(objOrArray)) {
+                    objOrArray.forEach(item => {
+                        const n = item.name || item;
+                        if (n.includes(query)) res.push(item);
+                    });
+                } else {
+                    // Object (Lines or Cities)
+                    Object.values(objOrArray).forEach(val => {
+                        res = res.concat(searchIn(val));
+                    });
+                }
+                return res;
+            };
+
             const data = STATION_DATA[currentModalType] || {};
-            const matches = [];
-            Object.values(data).forEach(list => {
-                list.forEach(item => {
-                    const n = item.name || item;
-                    if (n.includes(query)) matches.push(item);
-                });
-            });
+            const matches = searchIn(data);
 
             // Render matches
             matches.forEach(m => {
                 const div = document.createElement('div');
                 div.className = 'grid-item';
                 div.innerText = m.name || m;
+                if (state[currentModalType].some(s => (s.name || s) === (m.name || m))) {
+                    div.classList.add('selected');
+                }
                 div.onclick = () => toggleStation(m);
                 grid.appendChild(div);
             });
@@ -1078,12 +1200,12 @@
             aiBtn.style.borderColor = 'var(--accent-color)';
             aiBtn.innerText = `🔍 AI 搜尋 "${query}"`;
             aiBtn.style.gridColumn = '1 / -1';
-            aiBtn.onclick = () => askGeminiForStations(query); // Reuse existing logic logic
+            aiBtn.onclick = () => askGeminiForStations(query);
             grid.appendChild(aiBtn);
         }
 
         function renderAllStations() {
-            ['train', 'bus', 'bike'].forEach(type => {
+            ['train', 'mrt', 'bus', 'bike'].forEach(type => {
                 const container = document.getElementById(`${type}-list`);
                 container.innerHTML = '';
                 state[type].forEach((s, idx) => {
@@ -1130,7 +1252,7 @@
             const nowHour = now.getHours();
 
             let context = "general";
-            let allowedTrans = ["train", "bus", "bike"];
+            let allowedTrans = ["train", "mrt", "bus", "bike"];
 
             // Determine context
             if (nowHour < 12) {
@@ -1144,36 +1266,79 @@
             const gps = await getGPS();
 
             let trainPrompt = allowedTrans.includes("train") ? state.train.map(s => s.name).join(',') : "不查詢";
+            let mrtPrompt = allowedTrans.includes("mrt") ? state.mrt.map(s => s.name).join(',') : "不查詢";
             let busPrompt = allowedTrans.includes("bus") ? state.bus.map(s => s.name).join(',') : "不查詢";
             let bikePrompt = allowedTrans.includes("bike") ? state.bike.map(s => s.name).join(',') : "不查詢";
 
             // ADD LAST MILE INFO
             let lastMileInfo = "";
+            let destinationName = "";
             const lm = (context === "上班") ? state.settings.workLastMile : state.settings.homeLastMile;
             if (lm && lm.name) {
+                destinationName = lm.name;
                 lastMileInfo = `\n[重要] 最終目的地請導航至「${lm.name}」(${lm.trans.join('或')})。`;
                 // If Coords info, add it
                 if (lm.coords) {
                     lastMileInfo += ` 該站座標為: ${lm.coords}`;
                 }
+            } else {
+                destinationName = context === "上班" ? "公司" : "家";
             }
 
             const prompt = `現在時間 ${now.toLocaleString()}, 我正要${context}。
-我的位置: ${gps}${lastMileInfo}
+我的目前位置: ${gps}。目的地: ${destinationName}。${lastMileInfo}
+
+請幫我查詢 **未來 2 小時內** 的交通資訊。
+請務必使用 Google Search 或即時資料來獲取最新的班次時間 (Real-time)。
+
 請依據我的交通偏好提供建議：
 1. 火車 (關注: ${trainPrompt})
-2. 公車 (關注: ${busPrompt})
-3. YouBike (關注: ${bikePrompt})
+2. 捷運 (關注: ${mrtPrompt})
+3. 公車 (關注: ${busPrompt})
+4. YouBike (關注: ${bikePrompt})
 
-請回傳 JSON 格式:
+【重要請求】
+請額外提供 3 個「最佳轉乘方案」(Integrated Itineraries)，整合上述交通工具，告訴我如何從目前位置到達目的地。
+盡量包含：步行 -> 交通工具A -> 交通工具B -> 目的地。
+需包含預估發車/抵達時間。
+
+請回傳 JSON 格式 (不要 Markdown):
 {
-  "train": [],
-  "bus": [],
-  "bike": [],
-  "misc": "簡短建議"
+  "train": ["火車資訊1", "火車資訊2"],
+  "mrt": ["捷運資訊1", "捷運資訊2"],
+  "bus": ["公車資訊1", "公車資訊2"],
+  "bike": ["YouBike資訊1"],
+  "itineraries": [
+     { "title": "方案A (公車+捷運)", "details": "10:00 搭 307 (公館站) -> 10:20 轉捷運 -> 10:40 抵達", "time": "40分" },
+     { "title": "方案B (火車直達)", "details": "...", "time": "30分" },
+     { "title": "方案C", "details": "...", "time": "..." }
+  ],
+  "misc": "其他簡短建議"
 }`;
 
             callGeminiAPI(prompt);
+        }
+
+        function renderItineraries(list) {
+            const div = document.getElementById('itinerary-result');
+            div.innerHTML = '';
+            if (!list || list.length === 0) {
+                div.innerHTML = '<span style="color:#666">無建議方案</span>';
+                return;
+            }
+            list.forEach(i => {
+                const item = document.createElement('div');
+                item.style.marginBottom = "15px";
+                item.style.padding = "10px";
+                item.style.background = "rgba(255,255,255,0.05)";
+                item.style.borderRadius = "8px";
+
+                item.innerHTML = `
+                    <div style="color:var(--accent-color); font-weight:bold; margin-bottom:5px;">${i.title || '方案'} <span style="float:right; font-size:0.9em; color:#fff;">⏱ ${i.time || '?'}</span></div>
+                    <div style="font-size:0.9em; color:#ddd;">${i.details || ''}</div>
+                `;
+                div.appendChild(item);
+            });
         }
 
         async function getGPS() {
@@ -1206,8 +1371,10 @@
                 const json = JSON.parse(text.replace(/```json/g, '').replace(/```/g, ''));
 
                 renderResult('train', json.train);
+                renderResult('mrt', json.mrt);
                 renderResult('bus', json.bus);
                 renderResult('bike', json.bike);
+                renderItineraries(json.itineraries);
 
             } catch (e) {
                 alert("錯誤: " + e.message);

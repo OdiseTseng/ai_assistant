@@ -476,6 +476,71 @@
                 width: 100%;
                 height: 70%;
             }
+
+            .modal-main {
+                width: 100%;
+                height: 70%;
+            }
+        }
+
+        /* Help Modal Specifics */
+        .help-content {
+            padding: 10px 20px;
+            line-height: 1.6;
+            color: var(--text-color);
+        }
+
+        .help-content h2,
+        .help-content h3 {
+            color: var(--accent-color);
+            margin-top: 1.5em;
+        }
+
+        .help-content h2:first-child {
+            margin-top: 0;
+        }
+
+        .help-content ul,
+        .help-content ol {
+            padding-left: 25px;
+        }
+
+        .help-content li {
+            margin-bottom: 8px;
+        }
+
+        .help-content code {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+
+        /* Floating Action Button (FAB) */
+        .fab-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 900;
+            /* Above cards, below modal */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        .fab-btn:hover {
+            transform: scale(1.1);
+            background: var(--accent-hover);
         }
     </style>
 </head>
@@ -493,6 +558,9 @@
             </div>
             <div class="nav-item" onclick="openSettings()">
                 ⚙️ 個人化設定
+            </div>
+            <div class="nav-item" onclick="openHelpModal()">
+                ❓ 說明文件
             </div>
         </div>
         <div class="nav-footer" id="versionInfo">
@@ -573,6 +641,11 @@
         </div>
     </div>
 
+
+
+    <!-- Floating Action Button for Help -->
+    <button class="fab-btn" onclick="openHelpModal()" title="開啟說明">?</button>
+
     <!-- STATION MODAL (Add Stations) -->
     <div id="stationModal" class="modal-overlay">
         <div class="modal-content">
@@ -602,7 +675,10 @@
         <div class="modal-content sm">
             <div class="modal-header">
                 <h3>⚙️ 個人化設定</h3>
-                <button onclick="closeModal('settingsModal')">×</button>
+                <div style="display:flex; gap:10px;">
+                    <button onclick="openHelpModal()" style="padding:4px 10px; font-size:0.9em;">❓ 說明</button>
+                    <button onclick="closeModal('settingsModal')">×</button>
+                </div>
             </div>
             <div class="settings-form">
                 <!-- API Key -->
@@ -692,6 +768,69 @@
                 </div>
 
                 <button class="btn-primary" onclick="saveSettings()">儲存設定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- HELP MODAL -->
+    <div id="helpModal" class="modal-overlay">
+        <div class="modal-content sm">
+            <div class="modal-header">
+                <h3>❓ 使用說明</h3>
+                <button onclick="closeModal('helpModal')">×</button>
+            </div>
+            <div class="modal-body" style="overflow-y: auto;">
+                <div class="help-content">
+                    <h2>Odise Gemini Assistant</h2>
+                    <p>一個基於 Google Gemini API 的個人助理網頁，整合了交通資訊查詢功能。</p>
+
+                    <h3>✨ 功能特色</h3>
+                    <ul>
+                        <li><strong>交通時刻查詢</strong>：火車、公車、YouBike (自定義站點)。</li>
+                        <li><strong>GPS 定位</strong>：自動抓取當前位置以提供最近站點資訊。</li>
+                        <li><strong>自動版本號</strong>：每次 Git Commit 自動注入更新時間。</li>
+                    </ul>
+
+                    <h3>🚀 如何使用</h3>
+                    <ol>
+                        <li><strong>設定 API Key</strong>：
+                            <ul>
+                                <li>前往 <a href="https://aistudio.google.com/" target="_blank"
+                                        style="color:var(--accent-color)">Google AI Studio</a> 申請 API Key。</li>
+                                <li>在個人化設定中輸入 Key 並儲存。</li>
+                                <li><em>注意：Key 僅儲存在您的瀏覽器 LocalStorage 中，不會上傳至伺服器。</em></li>
+                            </ul>
+                        </li>
+                        <li><strong>新增站點</strong>：
+                            <ul>
+                                <li>點擊各區塊的「+」按鈕。</li>
+                                <li><strong>火車</strong>：可透過左側縣市選單或上方搜尋框尋找站點。</li>
+                                <li><strong>公車/YouBike</strong>：直接在搜尋框輸入站點名稱 (如 "307", "捷運板橋站")，並點擊「新增」。</li>
+                            </ul>
+                        </li>
+                        <li><strong>發送查詢</strong>：
+                            <ul>
+                                <li>點擊「根據設定取得 GPS 並查詢」。</li>
+                                <li>允許瀏覽器定位權限。</li>
+                                <li>Gemini 將會根據您的站點列表與位置回覆資訊。</li>
+                            </ul>
+                        </li>
+                    </ol>
+
+                    <h3>❓ 常見問題</h3>
+                    <ul>
+                        <li><strong>Q: 頁面一直提示「尚未偵測到金鑰」？</strong>
+                            <p style="margin-top:5px;">請確認您有點擊「儲存設定」按鈕。<br>
+                                <strong>如果您使用 VS Code 的 Preview 功能</strong>：建議直接用電腦的 <strong>Chrome 瀏覽器</strong> 開啟
+                                <code>index.html</code> 檔案。
+                            </p>
+                        </li>
+                        <li><strong>Q: 為什麼 GPS 沒反應？</strong>
+                            <p style="margin-top:5px;">請確認瀏覽器有允許網頁存取位置權限。<br>
+                                需要在 <code>https</code> 或 <code>file://</code> (本地檔案) 環境下執行。</p>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
@@ -802,10 +941,14 @@
         }
 
         function openSettings() {
-            const s = state.settings;
-            document.getElementById('settingApiKey').value = s.apiKey;
-            document.getElementById('settingWorkTime').value = s.workTime;
-            document.getElementById('settingHomeTime').value = s.homeTime;
+            // Load current settings into form
+            document.getElementById('settingApiKey').value = state.settings.apiKey;
+            document.getElementById('settingWorkTime').value = state.settings.workTime;
+            document.getElementById('settingHomeTime').value = state.settings.homeTime;
+            document.getElementById('settingWorkStation').value = state.settings.workLastMile.name || "";
+            document.getElementById('settingHomeStation').value = state.settings.homeLastMile.name || "";
+            document.getElementById('workStatus').innerText = '';
+            document.getElementById('homeStatus').innerText = '';
 
             // Apply Checkboxes Logic
             const setCheckboxes = (name, values) => {
@@ -814,21 +957,19 @@
                 });
             };
 
-            setCheckboxes('workTrans', s.workTrans);
-            setCheckboxes('homeTrans', s.homeTrans);
-
-            // Last Mile - Work
-            document.getElementById('settingWorkStation').value = s.workLastMile.name || "";
-            setCheckboxes('workLmTrans', s.workLastMile.trans);
-            renderStatus('work', s.workLastMile);
-
-            // Last Mile - Home
-            document.getElementById('settingHomeStation').value = s.homeLastMile.name || "";
-            setCheckboxes('homeLmTrans', s.homeLastMile.trans);
-            renderStatus('home', s.homeLastMile);
+            setCheckboxes('workTrans', state.settings.workTrans);
+            setCheckboxes('homeTrans', state.settings.homeTrans);
+            setCheckboxes('workLmTrans', state.settings.workLastMile.trans);
+            setCheckboxes('homeLmTrans', state.settings.homeLastMile.trans);
+            renderStatus('work', state.settings.workLastMile);
+            renderStatus('home', state.settings.homeLastMile);
 
             document.getElementById('settingsModal').classList.add('active');
             if (window.innerWidth <= 768) toggleSidebar();
+        }
+
+        function openHelpModal() {
+            document.getElementById('helpModal').classList.add('active');
         }
 
         function renderStatus(type, obj) {
@@ -1004,7 +1145,7 @@
 
             // Categories from DATA
             const data = STATION_DATA[type];
-            if (data) {
+            if (data && Object.keys(data).length > 0) {
                 Object.keys(data).forEach(k => {
                     const div = document.createElement('div');
                     div.className = 'category-item';
@@ -1230,7 +1371,150 @@
             filterStations('');
         }
 
-        // --- GEMINI LOGIC ---
+        // --- HYBRID SEARCH LOGIC ---
+        let youbikeCache = [];
+
+        async function fetchYouBikeData() {
+            if (youbikeCache.length > 0) return youbikeCache;
+
+            console.log("Fetching YouBike Data...");
+            const stations = [];
+
+            // 1. Taipei (YouBike 2.0)
+            try {
+                const res = await fetch('https://tcgbusfs.blob.core.windows.net/dotapp/youbike/v2/youbike_immediate.json');
+                const data = await res.json();
+                data.forEach(s => stations.push({ name: s.sna.replace('YouBike2.0_', ''), lat: s.lat, lng: s.lng, region: '台北/新北' }));
+            } catch (e) { console.error("Taipei YouBike API Error:", e); }
+
+            // 2. Taoyuan (YouBike 2.0)
+            try {
+                // Use AllOrigins Proxy to bypass SSL/CORS issues with data.tycg.gov.tw
+                const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://data.tycg.gov.tw/api/v1/rest/datastore/a1b4714b-3b75-4ff8-a8f2-cc377e4eaa0f?format=json');
+                const res = await fetch(proxyUrl);
+                const json = await res.json();
+                if (json.result && json.result.records) {
+                    json.result.records.forEach(s => stations.push({ name: s.sna.replace('YouBike2.0_', ''), lat: s.lat, lng: s.lng, region: '桃園' }));
+                }
+            } catch (e) { console.error("Taoyuan YouBike API Error:", e); }
+
+            youbikeCache = stations;
+            console.log(`Loaded ${stations.length} YouBike stations.`);
+            return stations;
+        }
+
+        async function askGeminiForStations(query) {
+            const grid = document.getElementById('modalGrid');
+            grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--accent-color);">
+                🔍 正在搜尋官方即時資料庫...<br>
+                <span style="font-size:0.8em; color:#888;">查詢 "YouBike ${query}"</span>
+            </div>`;
+
+            // --- STEP 1: Official API Search ---
+            try {
+                const stations = await fetchYouBikeData();
+                const q = query.trim();
+                const terms = q.split(' ').filter(t => t.trim().length > 0);
+
+                // Helper: Calculate Match Score
+                // Score = (Number of matching chars) / (Total chars in query)
+                const getScore = (stationName) => {
+                    const name = stationName.toLowerCase();
+                    // 1. Strict Include check (High Score)
+                    if (terms.every(t => name.includes(t.toLowerCase()))) return 1.0;
+
+                    // 2. Fuzzy Char check
+                    // Check how many characters from query exist in station name (in order? no, just set)
+                    // Let's use simple set intersection count for robustness against "大全聯" vs "全聯"
+                    const queryChars = q.replace(/\s/g, '').toLowerCase().split('');
+                    let matchCount = 0;
+                    queryChars.forEach(char => {
+                        if (name.includes(char)) matchCount++;
+                    });
+
+                    return matchCount / queryChars.length;
+                };
+
+                // Filter & Sort
+                // Threshold: > 0.6 (60% match)
+                const matches = stations
+                    .map(s => ({ ...s, score: getScore(s.name) }))
+                    .filter(s => s.score > 0.6)
+                    .sort((a, b) => b.score - a.score);
+
+                if (matches.length > 0) {
+                    grid.innerHTML = '';
+                    matches.slice(0, 10).forEach(m => {
+                        const div = document.createElement('div');
+                        div.className = 'grid-item';
+                        div.style.borderColor = 'var(--success-color)';
+                        // Show Name + Match Reason (e.g. "官方資料")
+                        div.innerHTML = `🚲 ${m.name}<br><span style="font-size:0.7em;color:#666">${m.region} (官方)</span>`;
+                        div.onclick = () => {
+                            toggleStation(m);
+                            document.getElementById('modalSearch').value = '';
+                            selectCategory('ADDED');
+                            alert(`✅ 已新增官方站點: ${m.name}`);
+                        };
+                        grid.appendChild(div);
+                    });
+
+                    if (matches.length > 10) {
+                        const more = document.createElement('div');
+                        more.style.gridColumn = '1/-1';
+                        more.style.textAlign = 'center';
+                        more.style.color = '#888';
+                        more.innerText = `(還有 ${matches.length - 10} 筆結果，請輸入更精確的關鍵字)`;
+                        grid.appendChild(more);
+                    }
+                    return; // Stop here, don't use AI
+                }
+
+            } catch (e) {
+                console.error("Official Search Failed", e);
+            }
+
+            // --- STEP 2: AI Fallback ---
+            const key = state.settings.apiKey;
+            if (!key) {
+                grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--danger-color);">❌ 官方資料庫找不到，且未設定 API Key 無法使用 AI 搜尋</div>`;
+                return;
+            }
+
+            grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--accent-color);">
+                🤖 官方資料庫無結果，轉由 AI 搜尋...<br>
+                <span style="font-size:0.8em; color:#888;">"${query}"</span>
+            </div>`;
+
+            const prompt = `請幫我查詢台灣地點「${query}」的精確經緯度。
+請務必確認該地點是否存在，若為連鎖店請確認該分店是否存在。
+請回傳 JSON 格式：{"valid": true, "name": "官方或更精確名稱", "lat": 25.123, "lng": 121.123}
+若找不到或不確定，請回傳 {"valid": false, "error": "找不到此地點"}`;
+
+            try {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${key}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+                const data = await res.json();
+                const text = data.candidates[0].content.parts[0].text;
+                const json = JSON.parse(text.replace(/```json/g, '').replace(/```/g, ''));
+
+                if (!json.valid) {
+                    grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--danger-color);">❌ AI 也找不到: ${json.error || '未知原因'}</div>`;
+                } else {
+                    // Success
+                    toggleStation({ name: json.name, lat: json.lat, lng: json.lng });
+                    document.getElementById('modalSearch').value = '';
+                    selectCategory('ADDED');
+                    alert(`✅ AI 已新增: ${json.name} (注意: AI 資料可能不完全準確)`);
+                }
+            } catch (e) {
+                grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--danger-color);">❌發生錯誤: ${e.message}</div>`;
+            }
+        }
+
         function updatePromptPreview() {
             const nowHour = new Date().getHours();
             const isGoingWork = nowHour < 12;
@@ -1265,6 +1549,24 @@
 
             const gps = await getGPS();
 
+            let startLocationStr = `我的目前位置: ${gps}`;
+            // GPS Fallback Logic
+            if (gps === "無GPS" || gps === "GPS失敗") {
+                let inferredStart = "";
+                // Logic: If going to work, start from Home. If going home, start from Work.
+                if (context === "上班") {
+                    inferredStart = state.settings.homeLastMile.name;
+                } else {
+                    inferredStart = state.settings.workLastMile.name;
+                }
+
+                if (inferredStart) {
+                    startLocationStr = `(注意: 無法取得 GPS) 請假設我從「${inferredStart}」出發`;
+                } else {
+                    startLocationStr = `(注意: 無法取得 GPS 且無預設起點)`;
+                }
+            }
+
             let trainPrompt = allowedTrans.includes("train") ? state.train.map(s => s.name).join(',') : "不查詢";
             let mrtPrompt = allowedTrans.includes("mrt") ? state.mrt.map(s => s.name).join(',') : "不查詢";
             let busPrompt = allowedTrans.includes("bus") ? state.bus.map(s => s.name).join(',') : "不查詢";
@@ -1286,7 +1588,7 @@
             }
 
             const prompt = `現在時間 ${now.toLocaleString()}, 我正要${context}。
-我的目前位置: ${gps}。目的地: ${destinationName}。${lastMileInfo}
+${startLocationStr}。目的地: ${destinationName}。${lastMileInfo}
 
 請幫我查詢 **未來 2 小時內** 的交通資訊。
 請務必使用 Google Search 或即時資料來獲取最新的班次時間 (Real-time)。

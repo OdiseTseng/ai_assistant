@@ -1128,8 +1128,18 @@
         // No sub-category state needed if we just render grid from data, 
         // but maybe useful for "Back". For now, clicking Sidebar resets to top.
 
-        function openStationModal(type) {
+        async function openStationModal(type) {
             currentModalType = type;
+
+            // Auto-fetch YouBike data if not loaded
+            if (type === 'bike' && Object.keys(STATION_DATA['bike']).length === 0) {
+                const modalTitle = document.getElementById('modalTitle');
+                const originalTitle = modalTitle.innerText;
+                modalTitle.innerText = "正在載入 YouBike 資料...";
+                await fetchYouBikeData();
+                modalTitle.innerText = "新增 YouBike"; // Restore
+            }
+
             document.getElementById('stationModal').classList.add('active');
             document.getElementById('modalTitle').innerText = { train: '新增火車', mrt: '新增捷運', bus: '新增公車', bike: '新增 YouBike' }[type];
 
@@ -1374,35 +1384,54 @@
         // --- HYBRID SEARCH LOGIC ---
         let youbikeCache = [];
 
+        const YOUBIKE_AREA_MAP = {
+            "01": "臺北市", "02": "新北市", "03": "桃園市",
+            "04": "新竹市", "05": "新竹縣", "06": "臺中市",
+            "07": "苗栗縣", "08": "嘉義市", "09": "嘉義縣",
+            "10": "臺南市", "11": "高雄市", "12": "屏東縣"
+        };
+
         async function fetchYouBikeData() {
             if (youbikeCache.length > 0) return youbikeCache;
 
             console.log("Fetching YouBike Data...");
             const stations = [];
 
-            // 1. Taipei (YouBike 2.0)
             try {
-                const res = await fetch('https://tcgbusfs.blob.core.windows.net/dotapp/youbike/v2/youbike_immediate.json');
-                const data = await res.json();
-                data.forEach(s => stations.push({ name: s.sna.replace('YouBike2.0_', ''), lat: s.lat, lng: s.lng, region: '台北/新北' }));
-            } catch (e) { console.error("Taipei YouBike API Error:", e); }
-
-            // 2. Taoyuan (YouBike 2.0) - Updated 2026-01-06 to use official API
-            try {
+                // Unified API for all regions
                 const res = await fetch('https://apis.youbike.com.tw/json/station-min-yb2.json');
                 const data = await res.json();
-                // 03 is Taoyuan area code
-                const taoyuanStations = data.filter(s => s.area_code_2 === '03');
-                taoyuanStations.forEach(s => {
+
+                // Reset STATION_DATA['bike'] to empty object to populate hierarchies
+                // Note: STATION_DATA is global, we need to be careful.
+                STATION_DATA['bike'] = {};
+
+                data.forEach(s => {
+                    // Filter invalid coordinates
+                    if (!s.lat || !s.lng) return;
+
+                    const areaCode = s.area_code_2;
+                    const city = YOUBIKE_AREA_MAP[areaCode] || "其他地區";
+                    const district = s.district_tw || "其他區";
                     const name = s.name_tw.replace('YouBike2.0_', '');
-                    stations.push({
-                        name: name,
-                        lat: s.lat,
-                        lng: s.lng,
-                        region: '桃園'
-                    });
+
+                    // 1. Structure for Modal (City -> District -> Stations)
+                    if (!STATION_DATA['bike'][city]) STATION_DATA['bike'][city] = {};
+                    if (!STATION_DATA['bike'][city][district]) STATION_DATA['bike'][city][district] = [];
+
+                    const stationObj = { name: name, lat: s.lat, lng: s.lng, region: city };
+                    STATION_DATA['bike'][city][district].push(stationObj);
+
+                    // 2. Flat list for AI Search
+                    stations.push(stationObj);
                 });
-            } catch (e) { console.error("Taoyuan YouBike API Error:", e); }
+
+                console.log("YouBike Data Structured:", Object.keys(STATION_DATA['bike']));
+
+            } catch (e) {
+                console.error("YouBike API Error:", e);
+                // Fallback or alert? For now just log.
+            }
 
             youbikeCache = stations;
             console.log(`Loaded ${stations.length} YouBike stations.`);

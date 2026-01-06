@@ -26,7 +26,34 @@ const state = {
     settings: DEFAULT_SETTINGS
 };
 
-// --- INIT ---
+// --- HELPER: TIME LOGIC ---
+function getCommuteMode(mockDate = null) {
+    const now = mockDate || new Date();
+    const hour = now.getHours();
+    const minute = now.getMinutes();
+    const currentMinutes = hour * 60 + minute;
+
+    // 1. Late Night Check (00:00 - 05:00)
+    if (hour >= 0 && hour < 5) {
+        return 'late_night';
+    }
+
+    // 2. Work Check (Work Time +/- 3 hours)
+    if (state.settings.workTime) {
+        const [wHour, wMinute] = state.settings.workTime.split(':').map(Number);
+        const workMinutes = wHour * 60 + wMinute;
+        const diff = Math.abs(currentMinutes - workMinutes);
+
+        // +/- 3 hours = 180 minutes
+        if (diff <= 180) {
+            return 'work';
+        }
+    }
+
+    // 3. Default: Home (After work)
+    return 'home';
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     console.log("🚀 App Initializing...");
     try {
@@ -639,28 +666,38 @@ function updatePromptPreview() {
     const preview = document.getElementById('promptPreview');
     if (!preview) return;
 
-    const nowHour = new Date().getHours();
-    const isGoingWork = nowHour < 12;
+    const mode = getCommuteMode();
+    let text = ``;
 
-    let text = `(範例) 現在是 ${isGoingWork ? '早上(上班)' : '下午(下班)'}。\n`;
-    text += `啟用的交通工具: ${isGoingWork ? state.settings.workTrans.join(', ') : state.settings.homeTrans.join(', ')}`;
-
-    // Preview Last Mile
-    const lm = isGoingWork ? state.settings.workLastMile : state.settings.homeLastMile;
-    if (lm && lm.name) {
-        text += `\n🏁 終點站: ${lm.name} (${lm.trans.join('/')})`;
+    if (mode === 'late_night') {
+        text += `(範例) 現在是 深夜時段 (00:00-05:00)。\n`;
+        text += `⚠️ 強制鎖定: 僅顯示 YouBike (Ubike)`;
+    } else if (mode === 'work') {
+        text += `(範例) 現在是 接近上班時間。\n`;
+        text += `啟用的交通工具: ${state.settings.workTrans.join(', ')}`;
+        if (state.settings.workLastMile.name) {
+            text += `\n🏁 終點站: ${state.settings.workLastMile.name} (${state.settings.workLastMile.trans.join('/')})`;
+        }
+    } else {
+        text += `(範例) 現在是 下班/其他時間。\n`;
+        text += `啟用的交通工具: ${state.settings.homeTrans.join(', ')}`;
+        if (state.settings.homeLastMile.name) {
+            text += `\n🏁 終點站: ${state.settings.homeLastMile.name} (${state.settings.homeLastMile.trans.join('/')})`;
+        }
     }
 
     preview.value = text;
 }
 
 function handleSend() {
-    // Defined in index.html calling API
-    // Wait, we moved handleSend here? 
-    // Yes, we should.
-    // But it needs createCommutePrompt which is in api_service.js?
-    // If api_service.js is loaded, it's global.
-    createCommutePrompt().then(prompt => {
+    const mode = getCommuteMode();
+
+    if (mode === 'late_night') {
+        alert("公共交通只剩下Ubike");
+    }
+
+    // Pass logic to createCommutePrompt to ensure consistency
+    createCommutePrompt(mode).then(prompt => {
         callGeminiAPI(prompt);
     });
 }

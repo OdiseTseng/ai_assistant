@@ -90,21 +90,36 @@ async function checkIsHoliday(dateObject) {
 
 // --- GEMINI AI ---
 
-async function createCommutePrompt() {
+async function createCommutePrompt(modeOverride = null) {
     const now = new Date();
+    // Use passed mode or recalculate (requires script.js to be loaded for getCommuteMode)
+    // If script.js isn't loaded yet (unlikely), fallback to old logic? 
+    // We assume script.js is loaded.
+    const mode = modeOverride || (typeof getCommuteMode === 'function' ? getCommuteMode() : 'home');
+
     const isHoliday = await checkIsHoliday(now);
     const timeStr = now.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
-
-    let prompt = `現在時間是 ${timeStr}。`;
-
-    // Get GPS
     const pos = await getGPS();
-    prompt += ` 我的位置在 ${pos}。`;
 
     // Helper to format stations
     const fmtStations = (list) => list.map(s => `${s.name || s}${s.lat ? `(${s.lat},${s.lng})` : ''}`).join('、');
 
-    if (isHoliday) {
+    let prompt = `現在時間是 ${timeStr}。`;
+    prompt += ` 我的位置在 ${pos}。`;
+
+    if (mode === 'late_night') {
+        prompt += `\n現在是深夜時段 (Late Night)。公共交通只剩下 Ubike。`;
+        prompt += `\n請僅查詢 YouBike 路線。忽略火車、捷運和公車。`;
+
+        // Force limited context
+        if (state.train.length) prompt += `\n(已忽略火車站)`;
+        if (state.mrt.length) prompt += `\n(已忽略捷運站)`;
+        if (state.bus.length) prompt += `\n(已忽略公車站)`;
+        if (state.bike.length) prompt += `\nYouBike: ${fmtStations(state.bike)}`;
+
+        prompt += `\n請提供附近的 YouBike 站點與騎乘建議。`;
+
+    } else if (isHoliday) {
         prompt += ` 今日是假日。`;
         const holidaySettings = state.settings.holiday || {};
         const oldHome = holidaySettings.oldHomeLastMile;
@@ -114,27 +129,41 @@ async function createCommutePrompt() {
         if (oldHome && oldHome.name) prompt += `\n- 預設目的地一 (老家): ${oldHome.name}`;
         if (home && home.name) prompt += `\n- 預設目的地二 (住家): ${home.name}`;
 
-    } else {
-        prompt += ` 今日是平日。`;
-        const work = state.settings.workLastMile;
-        const home = state.settings.homeLastMile;
-        const workTime = state.settings.workTime;
-        const homeTime = state.settings.homeTime;
+        // Add all stations
+        prompt += `\n\n已儲存的常用站點：`;
+        if (state.train.length) prompt += `\n火車: ${fmtStations(state.train)}`;
+        if (state.mrt.length) prompt += `\n捷運: ${fmtStations(state.mrt)}`;
+        if (state.bus.length) prompt += `\n公車: ${fmtStations(state.bus)}`;
+        if (state.bike.length) prompt += `\nYouBike: ${fmtStations(state.bike)}`;
 
-        prompt += `\n我的平日通勤設定：`;
-        prompt += `\n- 上班時間 ${workTime}，最後一哩路前往 ${work.name} (${work.trans.join('+')})`;
-        prompt += `\n- 下班時間 ${homeTime}，最後一哩路前往 ${home.name} (${home.trans.join('+')})`;
+    } else {
+        // Work or Home
+        prompt += ` 今日是平日。`;
+
+        let targetSettings = {};
+        if (mode === 'work') {
+            prompt += ` 我準備去上班。`;
+            const s = state.settings;
+            prompt += `\n上班設定: 時間 ${s.workTime}, 目的地 ${s.workLastMile.name} (${s.workLastMile.trans.join('+')})`;
+            prompt += `\n啟用交通工具: ${s.workTrans.join(', ')}`;
+        } else {
+            prompt += ` 我準備下班/回家。`;
+            const s = state.settings;
+            prompt += `\n下班設定: 時間 ${s.homeTime}, 目的地 ${s.homeLastMile.name} (${s.homeLastMile.trans.join('+')})`;
+            prompt += `\n啟用交通工具: ${s.homeTrans.join(', ')}`;
+        }
+
+        prompt += `\n\n已儲存的常用站點：`;
+        if (state.train.length) prompt += `\n火車: ${fmtStations(state.train)}`;
+        if (state.mrt.length) prompt += `\n捷運: ${fmtStations(state.mrt)}`;
+        if (state.bus.length) prompt += `\n公車: ${fmtStations(state.bus)}`;
+        if (state.bike.length) prompt += `\nYouBike: ${fmtStations(state.bike)}`;
     }
 
-    prompt += `\n\n已儲存的常用站點：`;
-    if (state.train.length) prompt += `\n火車: ${fmtStations(state.train)}`;
-    if (state.mrt.length) prompt += `\n捷運: ${fmtStations(state.mrt)}`;
-    if (state.bus.length) prompt += `\n公車: ${fmtStations(state.bus)}`;
-    if (state.bike.length) prompt += `\nYouBike: ${fmtStations(state.bike)}`;
-
-    prompt += `\n\n請根據現在時間與我的位置，判斷我應該是「上班中」、「下班中」還是「假日出遊」。`;
-    prompt += `\n如果不確定，請提供前往上述設定目的地的交通建議。`;
-    prompt += `\n請列出建議的交通方案，包含火車/捷運/公車/YouBike的時刻與路線。`;
+    prompt += `\n\n請根據現在時間與我的位置，提供最佳交通建議。`;
+    if (mode !== 'late_night') {
+        prompt += `\n請列出建議的交通方案，包含火車/捷運/公車/YouBike的時刻與路線。`;
+    }
     prompt += `\n回傳 JSON 格式: { "train": [], "mrt": [], "bus": [], "bike": [], "itineraries": [{ "title": "方案A", "details": "...", "time": "30分" }] }`;
 
     return prompt;

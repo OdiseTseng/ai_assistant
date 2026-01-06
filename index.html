@@ -54,16 +54,28 @@
             </div>
 
             <div class="dashboard-grid">
-                <!-- Section 1: Custom Prompt + Action -->
-                <div class="card full-width">
-                    <h2>📝 今日交通查詢</h2>
-                    <div style="display:flex; flex-direction:column; gap:10px;">
-                        <textarea id="promptPreview" placeholder="將根據您的設定自動生成提示詞..." readonly
-                            style="opacity: 0.7; height:80px;"></textarea>
+                <!-- Section 1: Itinerary & Query (Moved from Section 5) -->
+                <div class="card full-width" style="border-color: var(--accent-color);">
+                    <h2>最佳轉乘方案 (未來2小時)</h2>
+
+                    <!-- Controls (Moved from old Section 1) -->
+                    <div
+                        style="display:flex; flex-direction:column; gap:10px; margin-bottom:15px; border-bottom:1px solid #333; padding-bottom:15px;">
+
                         <button id="sendBtn" onclick="handleSend()" class="btn-primary" disabled>
                             📍 根據設定取得 GPS 並查詢
                         </button>
                     </div>
+
+                    <div id="itinerary-result" class="result-box" style="padding:15px; min-height:100px;">
+                        <span style="color:#666">等待查詢...</span>
+                    </div>
+                </div>
+
+
+                <!-- Section Title: Favorite Stations -->
+                <div style="grid-column: 1 / -1; margin-top: 10px;">
+                    <h2>喜好站點</h2>
                 </div>
 
                 <!-- Section 2: Train -->
@@ -94,21 +106,9 @@
                     <div id="bike-result" class="result-box"></div>
                 </div>
 
-                <!-- Section 5: Integrated Itinerary (New) -->
-                <div class="card full-width" style="margin-top:20px; border-color: var(--accent-color);">
-                    <h2>🚩 最佳轉乘方案 (未來2小時)</h2>
-                    <div id="itinerary-result" class="result-box" style="padding:15px; min-height:100px;">
-                        <span style="color:#666">等待查詢...</span>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
-
-
-
-    <!-- Floating Action Button for Help -->
-    <button class="fab-btn" onclick="openHelpModal()" title="開啟說明">?</button>
 
     <!-- STATION MODAL (Add Stations) -->
     <div id="stationModal" class="modal-overlay">

@@ -1046,7 +1046,7 @@
                 document.getElementById('holidayHomeStatus').innerText = '';
             }
 
-            // Apply Checkboxes Logic
+            // Apply Checkboxes Logic (Transport-in-transit only)
             const setCheckboxes = (name, values) => {
                 document.querySelectorAll(`input[name="${name}"]`).forEach(cb => {
                     cb.checked = (values || []).includes(cb.value);
@@ -1056,15 +1056,14 @@
             // Weekday Checkboxes
             setCheckboxes('workTrans', state.settings.workTrans);
             setCheckboxes('homeTrans', state.settings.homeTrans);
-            setCheckboxes('workLmTrans', state.settings.workLastMile.trans);
-            setCheckboxes('homeLmTrans', state.settings.homeLastMile.trans);
             renderStatus('work', state.settings.workLastMile);
             renderStatus('home', state.settings.homeLastMile);
 
             // Holiday Checkboxes
             if (state.settings.holiday) {
-                setCheckboxes('oldHomeTrans', state.settings.holiday.oldHomeTrans);
-                setCheckboxes('holidayHomeTrans', state.settings.holiday.homeTrans);
+                // No checkbox setting for LastMile anymore
+                // setCheckboxes('oldHomeTrans', state.settings.holiday.oldHomeTrans); // Logic removed
+                // setCheckboxes('holidayHomeTrans', state.settings.holiday.homeTrans); // Logic removed
                 renderStatus('holiday_oldHome', state.settings.holiday.oldHomeLastMile);
                 renderStatus('holiday_home', state.settings.holiday.homeLastMile);
             }
@@ -1073,20 +1072,17 @@
             if (window.innerWidth <= 768) toggleSidebar();
         }
 
-        function openHelpModal() {
-            document.getElementById('helpModal').classList.add('active');
-        }
-
-        function renderStatus(type, obj) {
-            const div = document.getElementById(`${type}Status`);
-            if (obj.coords) {
-                div.innerHTML = `<span style="color:var(--success-color)">✅ 已驗證 (座標: ${obj.coords})</span>`;
-            } else {
-                div.innerHTML = "";
-            }
-        }
-
         function saveSettings() {
+            // Helper to infer type from name string "Station (Type)"
+            const inferType = (str) => {
+                if (!str) return [];
+                if (str.includes('(火車)')) return ['train'];
+                if (str.includes('(捷運)')) return ['mrt'];
+                if (str.includes('(公車)')) return ['bus'];
+                if (str.includes('(YouBike)')) return ['bike'];
+                return ['train', 'mrt', 'bus', 'bike']; // Default fallback
+            };
+
             // API Key
             state.settings.apiKey = document.getElementById('settingApiKey').value;
 
@@ -1097,20 +1093,35 @@
             state.settings.homeTrans = Array.from(document.querySelectorAll('input[name="homeTrans"]:checked')).map(cb => cb.value);
 
             // Weekday Last Mile
-            state.settings.workLastMile.name = document.getElementById('settingWorkStation').value;
-            state.settings.workLastMile.trans = Array.from(document.querySelectorAll('input[name="workLmTrans"]:checked')).map(cb => cb.value);
+            const workVal = document.getElementById('settingWorkStation').value;
+            state.settings.workLastMile.name = workVal;
+            state.settings.workLastMile.trans = inferType(workVal);
 
-            state.settings.homeLastMile.name = document.getElementById('settingHomeStation').value;
-            state.settings.homeLastMile.trans = Array.from(document.querySelectorAll('input[name="homeLmTrans"]:checked')).map(cb => cb.value);
+            const homeVal = document.getElementById('settingHomeStation').value;
+            state.settings.homeLastMile.name = homeVal;
+            state.settings.homeLastMile.trans = inferType(homeVal);
 
             // Holiday
             if (!state.settings.holiday) state.settings.holiday = JSON.parse(JSON.stringify(DEFAULT_SETTINGS.holiday));
 
-            state.settings.holiday.oldHomeLastMile.name = document.getElementById('settingOldHomeStation').value;
-            state.settings.holiday.homeLastMile.name = document.getElementById('settingHolidayHomeStation').value;
-            state.settings.holiday.oldHomeTrans = Array.from(document.querySelectorAll('input[name="oldHomeTrans"]:checked')).map(cb => cb.value);
-            state.settings.holiday.homeTrans = Array.from(document.querySelectorAll('input[name="holidayHomeTrans"]:checked')).map(cb => cb.value);
+            const oldHomeVal = document.getElementById('settingOldHomeStation').value;
+            state.settings.holiday.oldHomeLastMile.name = oldHomeVal;
+            // For holiday en-route, we might want to default to ALL if UI is gone, or infer from last mile too?
+            // User request was "Remove checkboxes". Ideally we rely on AI or assume all enabled for "en-route".
+            // But here we are setting `oldHomeTrans` (en-route) and `oldHomeLastMile.trans`.
+            // Let's assume en-route is ALL or sync with last mile?
+            // Actually, previously `oldHomeTrans` was shared for En-route AND Last mile visualization.
+            // Let's set it to ['train','mrt','bus','bike'] as broad default for en-route unless we add "En-route" checkboxes back.
+            // But wait, the task was removing "Last Mile Transport UI".
+            // The Holiday section had "交通工具 (包含途中與最後一哩)". So removing it means we lose ability to filter *en-route* transport for holiday.
+            // I will set it to ALL by default to allow maximum flexibility.
+            state.settings.holiday.oldHomeTrans = ['train', 'mrt', 'bus', 'bike'];
+            state.settings.holiday.oldHomeLastMile.trans = inferType(oldHomeVal);
 
+            const holHomeVal = document.getElementById('settingHolidayHomeStation').value;
+            state.settings.holiday.homeLastMile.name = holHomeVal;
+            state.settings.holiday.homeTrans = ['train', 'mrt', 'bus', 'bike']; // Default ALL
+            state.settings.holiday.homeLastMile.trans = inferType(holHomeVal);
 
             saveState();
             checkKeyStatus();

@@ -708,7 +708,8 @@
                     <div class="sub-box">
                         <label class="form-label" style="font-size:0.95em;">🏁 最後一哩路 (抵達公司)</label>
                         <div style="display:flex; gap:10px;">
-                            <input type="text" id="settingWorkStation" placeholder="站點名稱 (例: 南港車站)">
+                            <input type="text" id="settingWorkStation" placeholder="點擊選擇站點..." readonly
+                                onclick="openSourceSelectModal('work')" style="cursor:pointer; background:#2a2a2a;">
                             <button onclick="validateLastMile('work')" id="checkWorkBtn"
                                 style="white-space:nowrap; width:auto; padding:0 12px;">檢查</button>
                         </div>
@@ -747,7 +748,8 @@
                     <div class="sub-box">
                         <label class="form-label" style="font-size:0.95em;">🏁 最後一哩路 (抵達住家)</label>
                         <div style="display:flex; gap:10px;">
-                            <input type="text" id="settingHomeStation" placeholder="站點名稱 (例: 板橋車站)">
+                            <input type="text" id="settingHomeStation" placeholder="點擊選擇站點..." readonly
+                                onclick="openSourceSelectModal('home')" style="cursor:pointer; background:#2a2a2a;">
                             <button onclick="validateLastMile('home')" id="checkHomeBtn"
                                 style="white-space:nowrap; width:auto; padding:0 12px;">檢查</button>
                         </div>
@@ -768,6 +770,24 @@
                 </div>
 
                 <button class="btn-primary" onclick="saveSettings()">儲存設定</button>
+            </div>
+
+            <!-- Source Selection Modal (New) -->
+            <div id="sourceSelectModal" class="modal-overlay" style="z-index: 2000;">
+                <div class="modal-content sm" style="max-width: 400px; text-align: center;">
+                    <div class="modal-header">
+                        <h3>選擇站點</h3>
+                        <button onclick="closeModal('sourceSelectModal')">×</button>
+                    </div>
+                    <div class="modal-body" style="padding: 20px 0;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <button class="btn-menu" onclick="openStationModal('train', 'select')">🚆 火車</button>
+                            <button class="btn-menu" onclick="openStationModal('mrt', 'select')">🚇 捷運</button>
+                            <button class="btn-menu" onclick="openStationModal('bus', 'select')">🚌 公車</button>
+                            <button class="btn-menu" onclick="openStationModal('bike', 'select')">🚲 YouBike</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -1125,11 +1145,25 @@
         // --- Modal & Main Logic ---
         let currentModalType = '';
         let currentCategory = ''; // Top level (City)
-        // No sub-category state needed if we just render grid from data, 
-        // but maybe useful for "Back". For now, clicking Sidebar resets to top.
 
-        async function openStationModal(type) {
+        // Global variables for Selection Mode
+        let selectionMode = 'manage'; // 'manage', 'select'
+        let selectionTarget = null;   // 'work', 'home' (for Last Mile)
+
+        function openSourceSelectModal(target) {
+            selectionTarget = target;
+            document.getElementById('sourceSelectModal').classList.add('active');
+        }
+
+        async function openStationModal(type, mode = 'manage') {
             currentModalType = type;
+            selectionMode = mode;
+
+            const modal = document.getElementById('stationModal');
+            modal.classList.add('active');
+
+            // Adjust Z-Index based on mode to sit on top of Settings/SourceSelect
+            modal.style.zIndex = mode === 'select' ? '3000' : '';
 
             // Auto-fetch YouBike data if not loaded
             if (type === 'bike' && Object.keys(STATION_DATA['bike']).length === 0) {
@@ -1137,21 +1171,24 @@
                 const originalTitle = modalTitle.innerText;
                 modalTitle.innerText = "正在載入 YouBike 資料...";
                 await fetchYouBikeData();
-                modalTitle.innerText = "新增 YouBike"; // Restore
+                modalTitle.innerText = mode === 'select' ? "選擇 YouBike 站點" : "新增 YouBike";
             }
 
-            document.getElementById('stationModal').classList.add('active');
-            document.getElementById('modalTitle').innerText = { train: '新增火車', mrt: '新增捷運', bus: '新增公車', bike: '新增 YouBike' }[type];
+            const titleMap = { train: '火車', mrt: '捷運', bus: '公車', bike: 'YouBike' };
+            const action = mode === 'select' ? '選擇' : '新增';
+            document.getElementById('modalTitle').innerText = `${action}${titleMap[type]}`;
 
             const sidebar = document.getElementById('modalSidebar');
             sidebar.innerHTML = '';
 
-            // Added List Link
-            const added = document.createElement('div');
-            added.className = 'category-item';
-            added.innerText = '已新增列表';
-            added.onclick = () => selectCategory('ADDED');
-            sidebar.appendChild(added);
+            // Added List Link (Only in Manage Mode)
+            if (mode === 'manage') {
+                const added = document.createElement('div');
+                added.className = 'category-item';
+                added.innerText = '已新增列表';
+                added.onclick = () => selectCategory('ADDED');
+                sidebar.appendChild(added);
+            }
 
             // Categories from DATA
             const data = STATION_DATA[type];
@@ -1163,10 +1200,9 @@
                     div.onclick = () => selectCategory(k);
                     sidebar.appendChild(div);
                 });
-                // Select first one by default
                 selectCategory(Object.keys(data)[0]);
             } else {
-                selectCategory('ADDED');
+                if (mode === 'manage') selectCategory('ADDED');
             }
 
             // Search init
@@ -1248,6 +1284,12 @@
         }
 
         function toggleStation(item) {
+            // Check Selection Mode
+            if (selectionMode === 'select') {
+                selectLastMileStation(item, currentModalType);
+                return;
+            }
+
             const list = state[currentModalType];
             const name = item.name || item;
             const idx = list.findIndex(s => (s.name || s) === name);
@@ -1286,7 +1328,53 @@
             }
         }
 
+        }
+
+        function selectLastMileStation(item, type) {
+            const name = item.name || item;
+            // Format: "StationName (Type)"
+            const typeLabel = { train: '火車', mrt: '捷運', bus: '公車', bike: 'YouBike' }[type] || type;
+            const formattedName = `${name} (${typeLabel})`;
+
+            // Determine Target Input based on selectionTarget ('work' or 'home')
+            const inputId = selectionTarget === 'work' ? 'settingWorkStation' : 'settingHomeStation';
+            const checkName = selectionTarget === 'work' ? 'workLmTrans' : 'homeLmTrans';
+
+            // 1. Set Name
+            document.getElementById(inputId).value = formattedName;
+
+            // 2. Auto-Check corresponding transport type
+            document.querySelectorAll(`input[name="${checkName}"]`).forEach(cb => {
+                if (cb.value === type) cb.checked = true;
+            });
+
+            // 3. Store Coords if available
+            // Note: We need to rely on 'saveSettings' to persist the name, 
+            // but we can pre-fill the internal status/coords state if we want validateLastMile to work cleanly?
+            // Actually, validateLastMile checks the INPUT value. 
+            // BUT, if we have coordinates here, we should probably set them directly!
+            // Let's do a "Soft Verify" - update the internal setting state immediately so the user sees "Verified"?
+            // Or just fill input and let user click verify? 
+            // User requirement: "選擇後在最後一哩路上顯示..."
+            // Let's update the internal validation state if we have coords.
+
+            if (item.lat && item.lng) {
+                const statusId = selectionTarget === 'work' ? 'workStatus' : 'homeStatus';
+                const statusDiv = document.getElementById(statusId);
+                statusDiv.innerHTML = `<span style="color:var(--success-color)">✅ 已選取: ${name} (${item.lat}, ${item.lng})</span>`;
+
+                // We can also potentially update the temp state if we want bypass 'Verify' button
+                // But typically saveSettings reads from Input.
+            }
+
+            // Close Modals
+            closeModal('stationModal');
+            closeModal('sourceSelectModal');
+        }
+
         function updateGridSelection() {
+            if (selectionMode === 'select') return; // Selection Mode doesn't use toggle style in the same way (just clicks)
+
             const list = state[currentModalType];
             document.querySelectorAll('#modalGrid .grid-item').forEach(div => {
                 // Text could have extra HTML, so check strict content or store data-name

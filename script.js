@@ -331,10 +331,12 @@ function openStationModal(type) {
     selectCategory('ADDED'); // Default view
     document.getElementById('stationModal').classList.add('active');
 
-    // Help text
-    const helpText = document.getElementById('modalHelpText');
     if (type === 'bike') {
         helpText.innerText = "💡 提示: YouBike 站點眾多，建議使用上方搜尋功能";
+    } else if (type === 'bus') {
+        helpText.innerText = "💡 提示: 請選擇縣市與區域，並輸入關鍵字搜尋";
+        renderBusSearchUI();
+        return;
     } else {
         helpText.innerText = "";
     }
@@ -373,6 +375,13 @@ function openSourceSelectModal(target) {
 
 function renderSidebar(type) {
     const sb = document.getElementById('modalSidebar');
+    // Hide Search Input for Bus initially? Or keep it?
+    // Bus uses its own input in sidebar or reuses the main one?
+    // Let's hide the top search bar for Bus to avoid confusion, 
+    // OR reuse it as the "Keyword" input. 
+    // Plan: Reuse top search bar as "Keyword".
+
+    // Reset Sidebar
     sb.innerHTML = '';
 
     // Add "Added" category
@@ -542,7 +551,7 @@ function filterStations(query) {
 
     // AI Check
     if (currentModalType === 'bike') {
-        askGeminiForStations(q);
+        askGeminiForStations(q, 'bike');
         return;
     }
 
@@ -700,4 +709,114 @@ function handleSend() {
     createCommutePrompt(mode).then(prompt => {
         callGeminiAPI(prompt);
     });
+}
+
+// --- NEW: BUS SEARCH UI ---
+function renderBusSearchUI() {
+    const sb = document.getElementById('modalSidebar');
+    sb.innerHTML = ''; // Clear existing categories
+
+    const container = document.createElement('div');
+    container.style.padding = "10px";
+    container.style.display = "flex";
+    container.style.flexDirection = "column";
+    container.style.gap = "10px";
+
+    // City Dropdown
+    const citySelect = document.createElement('select');
+    citySelect.id = 'busCitySelect';
+    citySelect.className = 'form-select'; // Reuse style if exists, else default
+    citySelect.style.width = "100%";
+    citySelect.style.padding = "8px";
+    citySelect.style.background = "#222";
+    citySelect.style.color = "#fff";
+    citySelect.style.border = "1px solid #444";
+    citySelect.style.borderRadius = "4px";
+
+    // Populate Cities
+    if (typeof TAIWAN_AREAS !== 'undefined') {
+        const cities = Object.keys(TAIWAN_AREAS);
+        cities.forEach(city => {
+            const opt = document.createElement('option');
+            opt.value = city;
+            opt.innerText = city;
+            citySelect.appendChild(opt);
+        });
+    }
+    // Set default?
+    citySelect.value = "桃園市";
+
+    // District Dropdown
+    const distSelect = document.createElement('select');
+    distSelect.id = 'busDistrictSelect';
+    distSelect.style.width = "100%";
+    distSelect.style.padding = "8px";
+    distSelect.style.background = "#222";
+    distSelect.style.color = "#fff";
+    distSelect.style.border = "1px solid #444";
+    distSelect.style.borderRadius = "4px";
+
+    // Update Districts on City Change
+    const updateDistricts = () => {
+        const city = citySelect.value;
+        const districts = (typeof TAIWAN_AREAS !== 'undefined') ? (TAIWAN_AREAS[city] || []) : [];
+        distSelect.innerHTML = '';
+        districts.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d;
+            opt.innerText = d;
+            distSelect.appendChild(opt);
+        });
+        // Default district?
+        if (districts.includes("中壢區")) distSelect.value = "中壢區";
+    };
+    citySelect.onchange = updateDistricts;
+
+    // Labels
+    const l1 = document.createElement('label'); l1.innerText = "1. 選擇縣市"; l1.style.color = "#aaa"; l1.style.fontSize = "0.9em";
+    const l2 = document.createElement('label'); l2.innerText = "2. 選擇區域"; l2.style.color = "#aaa"; l2.style.fontSize = "0.9em";
+    const l3 = document.createElement('label'); l3.innerText = "3. 輸入站點關鍵字 (右上方搜尋框)"; l3.style.color = "#aaa"; l3.style.fontSize = "0.9em";
+
+    // Action Button
+    const searchBtn = document.createElement('button');
+    searchBtn.innerText = "🔍 搜尋公車";
+    searchBtn.className = 'btn-primary';
+    searchBtn.style.marginTop = "10px";
+    searchBtn.onclick = () => {
+        const city = document.getElementById('busCitySelect').value;
+        const dist = document.getElementById('busDistrictSelect').value;
+        const kw = document.getElementById('modalSearch').value;
+
+        if (!kw) {
+            alert("請輸入關鍵字");
+            return;
+        }
+
+        const fullQuery = `${city} ${dist} ${kw} 公車站`;
+        askGeminiForStations(fullQuery, 'bus');
+    };
+
+    container.appendChild(l1);
+    container.appendChild(citySelect);
+    container.appendChild(l2);
+    container.appendChild(distSelect);
+    container.appendChild(l3);
+    container.appendChild(searchBtn);
+
+    sb.appendChild(container);
+
+    // Init districts
+    updateDistricts();
+
+    // Add "Added" list at bottom of sidebar?
+    const div = document.createElement('div');
+    div.className = 'category-item active';
+    div.innerText = "已新增列表";
+    div.style.marginTop = "20px";
+    div.style.borderTop = "1px solid #444";
+    div.onclick = () => renderGrid(state['bus']);
+    sb.appendChild(div);
+
+    // Initial render of added stations
+    renderGrid(state['bus']);
 }

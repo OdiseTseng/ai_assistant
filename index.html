@@ -116,7 +116,8 @@
             <div class="modal-header">
                 <h3 id="modalTitle" style="margin:0;">新增站點</h3>
                 <div style="flex-grow: 1; display: flex; gap: 5px; position: relative; margin: 0 15px;">
-                    <input type="text" id="modalSearch" style="margin: 0; padding:6px;" placeholder="搜尋站點...">
+                    <input type="text" id="modalSearch" oninput="filterStations(this.value)"
+                        style="margin: 0; padding:6px;" placeholder="搜尋站點...">
                     <button id="clearSearchBtn" onclick="clearSearch()"
                         style="display:none; position:absolute; right:5px; top:5px; padding:2px 5px;">X</button>
                 </div>

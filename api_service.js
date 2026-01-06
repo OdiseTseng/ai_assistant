@@ -180,7 +180,7 @@ async function callGeminiAPI(prompt) {
     }
 
     try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${key}`, {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${key}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
@@ -218,10 +218,56 @@ async function callGeminiAPI(prompt) {
     }
 }
 
-async function askGeminiForStations(query) {
+async function askGeminiForStations(query, type = 'bike') {
     const grid = document.getElementById('modalGrid');
 
-    // --- STEP 1: Official API Search ---
+    // --- CASE 1: Bus Search (Direct AI) ---
+    if (type === 'bus') {
+        if (grid) grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--accent-color);">
+            🤖 AI 搜尋公車中...<br>
+            <span style="font-size:0.8em; color:#888;">"${query}"</span>
+        </div>`;
+
+        // Bus Prompt
+        const key = state.settings.apiKey;
+        if (!key) {
+            if (grid) grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--danger-color);">❌ 未設定 API Key 無法使用 AI 搜尋</div>`;
+            return;
+        }
+
+        const prompt = `請查詢台灣公車站點「${query}」的精確位置。
+請確認該站點是否存在。
+請回傳 JSON 格式：{"valid": true, "name": "完整站點名稱", "lat": 25.123, "lng": 121.123}
+若找不到，請回傳 {"valid": false, "error": "找不到此站點"}`;
+
+        try {
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${key}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            });
+            const data = await res.json();
+            const text = data.candidates[0].content.parts[0].text;
+            const json = JSON.parse(text.replace(/```json/g, '').replace(/```/g, ''));
+
+            if (!json.valid) {
+                if (grid) grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--danger-color);">❌ AI 找不到: ${json.error || '未知原因'}</div>`;
+            } else {
+                toggleStation({ name: json.name, lat: json.lat, lng: json.lng });
+                // Don't clear search for Bus UI? Or do? Bus UI uses dropdowns.
+                // renderBusSearchUI doesn't use modalSearch for value storage but it reads it.
+                // Let's alert.
+                alert(`✅ AI 已新增公車: ${json.name}`);
+                renderGrid(state['bus']); // Refresh Added list
+            }
+        } catch (e) {
+            if (grid) grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--danger-color);">❌ 錯誤: ${e.message}</div>`;
+        }
+        return;
+    }
+
+    // --- CASE 2: YouBike Search (Official API -> AI) ---
+    // STEP 1: Official API Search
     try {
         const stations = await fetchYouBikeData(); // Ensures data is loaded/cached
         const q = query.trim();
@@ -275,7 +321,7 @@ async function askGeminiForStations(query) {
         console.error("Official Search Failed", e);
     }
 
-    // --- STEP 2: AI Fallback ---
+    // --- STEP 2: AI Fallback (YouBike) ---
     const key = state.settings.apiKey;
     if (!key) {
         if (grid) grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--danger-color);">❌ 官方資料庫找不到，且未設定 API Key 無法使用 AI 搜尋</div>`;
@@ -287,10 +333,10 @@ async function askGeminiForStations(query) {
         <span style="font-size:0.8em; color:#888;">"${query}"</span>
     </div>`;
 
-    const prompt = `請幫我查詢台灣地點「${query}」的精確經緯度。
-請務必確認該地點是否存在，若為連鎖店請確認該分店是否存在。
-請回傳 JSON 格式：{"valid": true, "name": "官方或更精確名稱", "lat": 25.123, "lng": 121.123}
-若找不到或不確定，請回傳 {"valid": false, "error": "找不到此地點"}`;
+    const prompt = `請幫我查詢台灣 YouBike 站點「${query}」的精確經緯度。
+請務必確認該站點是否存在。
+請回傳 JSON 格式：{"valid": true, "name": "官方精確站名", "lat": 25.123, "lng": 121.123}
+若找不到或不確定，請回傳 {"valid": false, "error": "找不到此站點"}`;
 
     try {
         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${key}`, {

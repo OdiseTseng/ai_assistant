@@ -1387,15 +1387,21 @@
                 data.forEach(s => stations.push({ name: s.sna.replace('YouBike2.0_', ''), lat: s.lat, lng: s.lng, region: '台北/新北' }));
             } catch (e) { console.error("Taipei YouBike API Error:", e); }
 
-            // 2. Taoyuan (YouBike 2.0)
+            // 2. Taoyuan (YouBike 2.0) - Updated 2026-01-06 to use official API
             try {
-                // Use AllOrigins Proxy to bypass SSL/CORS issues with data.tycg.gov.tw
-                const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://data.tycg.gov.tw/api/v1/rest/datastore/a1b4714b-3b75-4ff8-a8f2-cc377e4eaa0f?format=json');
-                const res = await fetch(proxyUrl);
-                const json = await res.json();
-                if (json.result && json.result.records) {
-                    json.result.records.forEach(s => stations.push({ name: s.sna.replace('YouBike2.0_', ''), lat: s.lat, lng: s.lng, region: '桃園' }));
-                }
+                const res = await fetch('https://apis.youbike.com.tw/json/station-min-yb2.json');
+                const data = await res.json();
+                // 03 is Taoyuan area code
+                const taoyuanStations = data.filter(s => s.area_code_2 === '03');
+                taoyuanStations.forEach(s => {
+                    const name = s.name_tw.replace('YouBike2.0_', '');
+                    stations.push({
+                        name: name,
+                        lat: s.lat,
+                        lng: s.lng,
+                        region: '桃園'
+                    });
+                });
             } catch (e) { console.error("Taoyuan YouBike API Error:", e); }
 
             youbikeCache = stations;

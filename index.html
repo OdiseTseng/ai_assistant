@@ -925,34 +925,42 @@
         };
 
         // --- Init ---
-        window.onload = function () {
-            loadState();
+        // --- Init ---
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("🚀 App Initializing...");
+            try {
+                loadState();
+                console.log("✅ State Loaded:", state);
 
-            // Legacy Migration (for API Key from old localStorage key)
-            if (oldKey && !state.settings.apiKey) {
-                state.settings.apiKey = oldKey;
-                saveState(); // Consolidate
-                localStorage.removeItem('user_gemini_key'); // Clean up
+                // Legacy Migration (for API Key from old localStorage key)
+                if (typeof oldKey !== 'undefined' && oldKey && !state.settings.apiKey) {
+                    state.settings.apiKey = oldKey;
+                    saveState(); // Consolidate
+                    localStorage.removeItem('user_gemini_key'); // Clean up
+                }
+
+                // Init Holiday if missing (for legacy data)
+                if (!state.settings.holiday) {
+                    state.settings.holiday = JSON.parse(JSON.stringify(DEFAULT_SETTINGS.holiday));
+                }
+
+                // Render
+                renderAllStations();
+                updatePromptPreview();
+                checkKeyStatus();
+
+                // Auto-open settings if incomplete
+                checkSettingsAndPrompt();
+
+                // Version
+                if (typeof BUILD_INFO !== 'undefined') {
+                    document.getElementById('versionInfo').innerText = `v${BUILD_INFO.time}`;
+                }
+            } catch (e) {
+                console.error("❌ Init Error:", e);
+                // alert("初始化失敗，請查看 Console");
             }
-
-            // Init Holiday if missing (for legacy data)
-            if (!state.settings.holiday) {
-                state.settings.holiday = JSON.parse(JSON.stringify(DEFAULT_SETTINGS.holiday));
-            }
-
-            // Render
-            renderAllStations();
-            updatePromptPreview();
-            checkKeyStatus();
-
-            // Auto-open settings if incomplete
-            checkSettingsAndPrompt();
-
-            // Version
-            if (typeof BUILD_INFO !== 'undefined') {
-                document.getElementById('versionInfo').innerText = `v${BUILD_INFO.time}`;
-            }
-        };
+        });
 
         function loadState() {
             // Stations

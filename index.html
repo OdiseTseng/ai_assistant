@@ -718,6 +718,7 @@
                                 YouBike</label>
                         </div>
 
+
                         <!-- Work Last Mile -->
                         <div class="sub-box">
                             <label class="form-label" style="font-size:0.95em;">🏁 最後一哩路 (抵達公司)</label>
@@ -728,18 +729,6 @@
                                     style="white-space:nowrap; width:auto; padding:0 12px;">檢查</button>
                             </div>
                             <div id="workStatus" class="status-msg"></div>
-
-                            <span class="form-sub-label" style="margin-top:5px;">交通工具</span>
-                            <div class="checkbox-group">
-                                <label class="checkbox-label"><input type="checkbox" name="workLmTrans" value="train">
-                                    火車</label>
-                                <label class="checkbox-label"><input type="checkbox" name="workLmTrans" value="mrt">
-                                    捷運</label>
-                                <label class="checkbox-label"><input type="checkbox" name="workLmTrans" value="bus">
-                                    公車</label>
-                                <label class="checkbox-label"><input type="checkbox" name="workLmTrans" value="bike">
-                                    YouBike</label>
-                            </div>
                         </div>
                     </div>
 
@@ -761,6 +750,7 @@
                                 YouBike</label>
                         </div>
 
+
                         <!-- Home Last Mile -->
                         <div class="sub-box">
                             <label class="form-label" style="font-size:0.95em;">🏁 最後一哩路 (抵達住家)</label>
@@ -771,18 +761,6 @@
                                     style="white-space:nowrap; width:auto; padding:0 12px;">檢查</button>
                             </div>
                             <div id="homeStatus" class="status-msg"></div>
-
-                            <span class="form-sub-label" style="margin-top:5px;">交通工具</span>
-                            <div class="checkbox-group">
-                                <label class="checkbox-label"><input type="checkbox" name="homeLmTrans" value="train">
-                                    火車</label>
-                                <label class="checkbox-label"><input type="checkbox" name="homeLmTrans" value="mrt">
-                                    捷運</label>
-                                <label class="checkbox-label"><input type="checkbox" name="homeLmTrans" value="bus">
-                                    公車</label>
-                                <label class="checkbox-label"><input type="checkbox" name="homeLmTrans" value="bike">
-                                    YouBike</label>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -809,18 +787,6 @@
                                     style="white-space:nowrap; width:auto; padding:0 12px;">檢查</button>
                             </div>
                             <div id="holidayOldHomeStatus" class="status-msg"></div>
-
-                            <span class="form-sub-label" style="margin-top:5px;">交通工具 (包含途中與最後一哩)</span>
-                            <div class="checkbox-group">
-                                <label class="checkbox-label"><input type="checkbox" name="oldHomeTrans" value="train">
-                                    火車</label>
-                                <label class="checkbox-label"><input type="checkbox" name="oldHomeTrans" value="mrt">
-                                    捷運</label>
-                                <label class="checkbox-label"><input type="checkbox" name="oldHomeTrans" value="bus">
-                                    公車</label>
-                                <label class="checkbox-label"><input type="checkbox" name="oldHomeTrans" value="bike">
-                                    YouBike</label>
-                            </div>
                         </div>
                     </div>
 
@@ -839,17 +805,6 @@
                             </div>
                             <div id="holidayHomeStatus" class="status-msg"></div>
 
-                            <span class="form-sub-label" style="margin-top:5px;">交通工具 (包含途中與最後一哩)</span>
-                            <div class="checkbox-group">
-                                <label class="checkbox-label"><input type="checkbox" name="holidayHomeTrans"
-                                        value="train"> 火車</label>
-                                <label class="checkbox-label"><input type="checkbox" name="holidayHomeTrans"
-                                        value="mrt"> 捷運</label>
-                                <label class="checkbox-label"><input type="checkbox" name="holidayHomeTrans"
-                                        value="bus"> 公車</label>
-                                <label class="checkbox-label"><input type="checkbox" name="holidayHomeTrans"
-                                        value="bike"> YouBike</label>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -1989,37 +1944,42 @@ ${startLocationStr}。目的地: ${destinationName}。${lastMileInfo}
             const prompt = await createCommutePrompt();
             callGeminiAPI(prompt);
         }
-        const key = state.settings.apiKey;
-        const btn = document.getElementById('sendBtn');
-        btn.disabled = true;
-        btn.innerText = "🤖 思考中...";
+        async function callGeminiAPI(prompt) {
+            const key = state.settings.apiKey;
+            if (!key) return alert("請先設定 API Key");
 
-        try {
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${key}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-            });
-            const data = await res.json();
-            const text = data.candidates[0].content.parts[0].text;
+            const btn = document.getElementById('sendBtn');
+            btn.disabled = true;
+            btn.innerText = "🤖 思考中...";
 
-            document.getElementById('responseArea').innerText = text;
+            try {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${key}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+                const data = await res.json();
+                const text = data.candidates[0].content.parts[0].text;
 
-            const json = JSON.parse(text.replace(/```json/g, '').replace(/```/g, ''));
+                document.getElementById('debugArea').style.display = 'none'; // Hide debug on success
+                // document.getElementById('responseArea').innerText = text; // Optional debug view
 
-            renderResult('train', json.train);
-            renderResult('mrt', json.mrt);
-            renderResult('bus', json.bus);
-            renderResult('bike', json.bike);
-            renderItineraries(json.itineraries);
+                const json = JSON.parse(text.replace(/```json/g, '').replace(/```/g, ''));
 
-        } catch (e) {
-            alert("錯誤: " + e.message);
-            document.getElementById('debugArea').style.display = 'block';
-        } finally {
-            btn.disabled = false;
-            btn.innerText = "📍 根據設定取得 GPS 並查詢";
-        }
+                renderResult('train', json.train);
+                renderResult('mrt', json.mrt);
+                renderResult('bus', json.bus);
+                renderResult('bike', json.bike);
+                renderItineraries(json.itineraries);
+
+            } catch (e) {
+                alert("錯誤: " + e.message);
+                document.getElementById('debugArea').style.display = 'block';
+                document.getElementById('responseArea').innerText = "API Error: " + e.message;
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "📍 根據設定取得 GPS 並查詢";
+            }
         }
 
         function renderResult(type, list) {

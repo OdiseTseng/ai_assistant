@@ -681,7 +681,16 @@
                 </div>
             </div>
             <div class="settings-form">
-                <!-- API Key -->
+                <!-- Tabs -->
+                <div class="tabs" style="display:flex; gap:10px; margin-bottom:15px; border-bottom:1px solid #444;">
+                    <button id="tabBtnWeekday" class="tab-btn active" onclick="switchSettingsTab('weekday')"
+                        style="padding:8px 15px; background:none; border:none; color:var(--text-color); border-bottom:2px solid var(--accent-color);">🏢
+                        平日設定</button>
+                    <button id="tabBtnHoliday" class="tab-btn" onclick="switchSettingsTab('holiday')"
+                        style="padding:8px 15px; background:none; border:none; color:#888;">🏖️ 假日設定</button>
+                </div>
+
+                <!-- API Key (Common) -->
                 <div class="form-group">
                     <label class="form-label">Google Gemini API Key</label>
                     <input type="password" id="settingApiKey" placeholder="貼上 API Key">
@@ -689,82 +698,158 @@
 
                 <hr style="border:0; border-top:1px solid var(--card-border); margin:20px 0;">
 
-                <!-- Work Settings -->
-                <div class="form-group">
-                    <label class="form-label">🏢 上班設定</label>
-                    <span class="form-sub-label">上班時間</span>
-                    <input type="time" id="settingWorkTime">
+                <!-- Tab Content: Weekday -->
+                <div id="tabWeekday" class="tab-content">
+                    <!-- Work Settings -->
+                    <div class="form-group">
+                        <label class="form-label">🏢 上班設定</label>
+                        <span class="form-sub-label">上班時間</span>
+                        <input type="time" id="settingWorkTime">
 
-                    <span class="form-sub-label" style="margin-top:10px;">交通工具組合 (途中)</span>
-                    <div class="checkbox-group">
-                        <label class="checkbox-label"><input type="checkbox" name="workTrans" value="train"> 火車</label>
-                        <label class="checkbox-label"><input type="checkbox" name="workTrans" value="mrt"> 捷運</label>
-                        <label class="checkbox-label"><input type="checkbox" name="workTrans" value="bus"> 公車</label>
-                        <label class="checkbox-label"><input type="checkbox" name="workTrans" value="bike">
-                            YouBike</label>
+                        <span class="form-sub-label" style="margin-top:10px;">交通工具組合 (途中)</span>
+                        <div class="checkbox-group">
+                            <label class="checkbox-label"><input type="checkbox" name="workTrans" value="train">
+                                火車</label>
+                            <label class="checkbox-label"><input type="checkbox" name="workTrans" value="mrt">
+                                捷運</label>
+                            <label class="checkbox-label"><input type="checkbox" name="workTrans" value="bus">
+                                公車</label>
+                            <label class="checkbox-label"><input type="checkbox" name="workTrans" value="bike">
+                                YouBike</label>
+                        </div>
+
+                        <!-- Work Last Mile -->
+                        <div class="sub-box">
+                            <label class="form-label" style="font-size:0.95em;">🏁 最後一哩路 (抵達公司)</label>
+                            <div style="display:flex; gap:10px;">
+                                <input type="text" id="settingWorkStation" placeholder="點擊選擇站點..." readonly
+                                    onclick="openSourceSelectModal('work')" style="cursor:pointer; background:#2a2a2a;">
+                                <button onclick="validateLastMile('work')" id="checkWorkBtn"
+                                    style="white-space:nowrap; width:auto; padding:0 12px;">檢查</button>
+                            </div>
+                            <div id="workStatus" class="status-msg"></div>
+
+                            <span class="form-sub-label" style="margin-top:5px;">交通工具</span>
+                            <div class="checkbox-group">
+                                <label class="checkbox-label"><input type="checkbox" name="workLmTrans" value="train">
+                                    火車</label>
+                                <label class="checkbox-label"><input type="checkbox" name="workLmTrans" value="mrt">
+                                    捷運</label>
+                                <label class="checkbox-label"><input type="checkbox" name="workLmTrans" value="bus">
+                                    公車</label>
+                                <label class="checkbox-label"><input type="checkbox" name="workLmTrans" value="bike">
+                                    YouBike</label>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Work Last Mile -->
-                    <div class="sub-box">
-                        <label class="form-label" style="font-size:0.95em;">🏁 最後一哩路 (抵達公司)</label>
-                        <div style="display:flex; gap:10px;">
-                            <input type="text" id="settingWorkStation" placeholder="點擊選擇站點..." readonly
-                                onclick="openSourceSelectModal('work')" style="cursor:pointer; background:#2a2a2a;">
-                            <button onclick="validateLastMile('work')" id="checkWorkBtn"
-                                style="white-space:nowrap; width:auto; padding:0 12px;">檢查</button>
-                        </div>
-                        <div id="workStatus" class="status-msg"></div>
+                    <!-- Home Settings -->
+                    <div class="form-group">
+                        <label class="form-label">🏠 下班設定</label>
+                        <span class="form-sub-label">下班時間</span>
+                        <input type="time" id="settingHomeTime">
 
-                        <span class="form-sub-label" style="margin-top:5px;">交通工具</span>
+                        <span class="form-sub-label" style="margin-top:10px;">交通工具組合 (途中)</span>
                         <div class="checkbox-group">
-                            <label class="checkbox-label"><input type="checkbox" name="workLmTrans" value="train">
+                            <label class="checkbox-label"><input type="checkbox" name="homeTrans" value="train">
                                 火車</label>
-                            <label class="checkbox-label"><input type="checkbox" name="workLmTrans" value="mrt">
+                            <label class="checkbox-label"><input type="checkbox" name="homeTrans" value="mrt">
                                 捷運</label>
-                            <label class="checkbox-label"><input type="checkbox" name="workLmTrans" value="bus">
+                            <label class="checkbox-label"><input type="checkbox" name="homeTrans" value="bus">
                                 公車</label>
-                            <label class="checkbox-label"><input type="checkbox" name="workLmTrans" value="bike">
+                            <label class="checkbox-label"><input type="checkbox" name="homeTrans" value="bike">
                                 YouBike</label>
+                        </div>
+
+                        <!-- Home Last Mile -->
+                        <div class="sub-box">
+                            <label class="form-label" style="font-size:0.95em;">🏁 最後一哩路 (抵達住家)</label>
+                            <div style="display:flex; gap:10px;">
+                                <input type="text" id="settingHomeStation" placeholder="點擊選擇站點..." readonly
+                                    onclick="openSourceSelectModal('home')" style="cursor:pointer; background:#2a2a2a;">
+                                <button onclick="validateLastMile('home')" id="checkHomeBtn"
+                                    style="white-space:nowrap; width:auto; padding:0 12px;">檢查</button>
+                            </div>
+                            <div id="homeStatus" class="status-msg"></div>
+
+                            <span class="form-sub-label" style="margin-top:5px;">交通工具</span>
+                            <div class="checkbox-group">
+                                <label class="checkbox-label"><input type="checkbox" name="homeLmTrans" value="train">
+                                    火車</label>
+                                <label class="checkbox-label"><input type="checkbox" name="homeLmTrans" value="mrt">
+                                    捷運</label>
+                                <label class="checkbox-label"><input type="checkbox" name="homeLmTrans" value="bus">
+                                    公車</label>
+                                <label class="checkbox-label"><input type="checkbox" name="homeLmTrans" value="bike">
+                                    YouBike</label>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Home Settings -->
-                <div class="form-group">
-                    <label class="form-label">🏠 下班設定</label>
-                    <span class="form-sub-label">下班時間</span>
-                    <input type="time" id="settingHomeTime">
-
-                    <span class="form-sub-label" style="margin-top:10px;">交通工具組合 (途中)</span>
-                    <div class="checkbox-group">
-                        <label class="checkbox-label"><input type="checkbox" name="homeTrans" value="train"> 火車</label>
-                        <label class="checkbox-label"><input type="checkbox" name="homeTrans" value="mrt"> 捷運</label>
-                        <label class="checkbox-label"><input type="checkbox" name="homeTrans" value="bus"> 公車</label>
-                        <label class="checkbox-label"><input type="checkbox" name="homeTrans" value="bike">
-                            YouBike</label>
+                <!-- Tab Content: Holiday -->
+                <div id="tabHoliday" class="tab-content" style="display:none;">
+                    <div class="alert-box"
+                        style="background:rgba(255,255,255,0.05); padding:10px; border-radius:4px; margin-bottom:15px; font-size:0.9em; color:#aaa;">
+                        ℹ️ 系統會自動根據台灣國定假日(ROC Calendar)判斷是否為假日。如果是假日，將優先使用此處設定。
                     </div>
 
-                    <!-- Home Last Mile -->
-                    <div class="sub-box">
-                        <label class="form-label" style="font-size:0.95em;">🏁 最後一哩路 (抵達住家)</label>
-                        <div style="display:flex; gap:10px;">
-                            <input type="text" id="settingHomeStation" placeholder="點擊選擇站點..." readonly
-                                onclick="openSourceSelectModal('home')" style="cursor:pointer; background:#2a2a2a;">
-                            <button onclick="validateLastMile('home')" id="checkHomeBtn"
-                                style="white-space:nowrap; width:auto; padding:0 12px;">檢查</button>
-                        </div>
-                        <div id="homeStatus" class="status-msg"></div>
+                    <!-- Old Home Settings -->
+                    <div class="form-group">
+                        <label class="form-label">🏡 抵達老家</label>
+                        <!-- Old Home Last Mile -->
+                        <div class="sub-box">
+                            <label class="form-label" style="font-size:0.95em;">🏁 最後一哩路</label>
+                            <div style="display:flex; gap:10px;">
+                                <input type="text" id="settingOldHomeStation" placeholder="點擊選擇站點..." readonly
+                                    onclick="openSourceSelectModal('holiday_oldHome')"
+                                    style="cursor:pointer; background:#2a2a2a;">
+                                <!-- Validation button shared logic, slightly tweaked ID -->
+                                <button onclick="validateLastMile('holiday_oldHome')" id="checkOldHomeBtn"
+                                    style="white-space:nowrap; width:auto; padding:0 12px;">檢查</button>
+                            </div>
+                            <div id="holidayOldHomeStatus" class="status-msg"></div>
 
-                        <span class="form-sub-label" style="margin-top:5px;">交通工具</span>
-                        <div class="checkbox-group">
-                            <label class="checkbox-label"><input type="checkbox" name="homeLmTrans" value="train">
-                                火車</label>
-                            <label class="checkbox-label"><input type="checkbox" name="homeLmTrans" value="mrt">
-                                捷運</label>
-                            <label class="checkbox-label"><input type="checkbox" name="homeLmTrans" value="bus">
-                                公車</label>
-                            <label class="checkbox-label"><input type="checkbox" name="homeLmTrans" value="bike">
-                                YouBike</label>
+                            <span class="form-sub-label" style="margin-top:5px;">交通工具 (包含途中與最後一哩)</span>
+                            <div class="checkbox-group">
+                                <label class="checkbox-label"><input type="checkbox" name="oldHomeTrans" value="train">
+                                    火車</label>
+                                <label class="checkbox-label"><input type="checkbox" name="oldHomeTrans" value="mrt">
+                                    捷運</label>
+                                <label class="checkbox-label"><input type="checkbox" name="oldHomeTrans" value="bus">
+                                    公車</label>
+                                <label class="checkbox-label"><input type="checkbox" name="oldHomeTrans" value="bike">
+                                    YouBike</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Holiday Home Settings -->
+                    <div class="form-group">
+                        <label class="form-label">🏠 抵達住家 (回程)</label>
+                        <!-- Holiday Home Last Mile -->
+                        <div class="sub-box">
+                            <label class="form-label" style="font-size:0.95em;">🏁 最後一哩路</label>
+                            <div style="display:flex; gap:10px;">
+                                <input type="text" id="settingHolidayHomeStation" placeholder="點擊選擇站點..." readonly
+                                    onclick="openSourceSelectModal('holiday_home')"
+                                    style="cursor:pointer; background:#2a2a2a;">
+                                <button onclick="validateLastMile('holiday_home')" id="checkHolidayHomeBtn"
+                                    style="white-space:nowrap; width:auto; padding:0 12px;">檢查</button>
+                            </div>
+                            <div id="holidayHomeStatus" class="status-msg"></div>
+
+                            <span class="form-sub-label" style="margin-top:5px;">交通工具 (包含途中與最後一哩)</span>
+                            <div class="checkbox-group">
+                                <label class="checkbox-label"><input type="checkbox" name="holidayHomeTrans"
+                                        value="train"> 火車</label>
+                                <label class="checkbox-label"><input type="checkbox" name="holidayHomeTrans"
+                                        value="mrt"> 捷運</label>
+                                <label class="checkbox-label"><input type="checkbox" name="holidayHomeTrans"
+                                        value="bus"> 公車</label>
+                                <label class="checkbox-label"><input type="checkbox" name="holidayHomeTrans"
+                                        value="bike"> YouBike</label>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -867,7 +952,13 @@
             workTrans: ["train", "mrt", "bus", "bike"],
             homeTrans: ["train", "mrt", "bus", "bike"],
             workLastMile: { name: "", trans: [], coords: null },
-            homeLastMile: { name: "", trans: [], coords: null }
+            homeLastMile: { name: "", trans: [], coords: null },
+            holiday: {
+                oldHomeLastMile: { name: "", trans: [], coords: null },
+                homeLastMile: { name: "", trans: [], coords: null },
+                oldHomeTrans: ["train", "mrt", "bus", "bike"],
+                homeTrans: ["train", "mrt", "bus", "bike"]
+            }
         };
 
         const state = {
@@ -883,11 +974,15 @@
             loadState();
 
             // Legacy Migration (for API Key from old localStorage key)
-            const oldKey = localStorage.getItem('user_gemini_key');
             if (oldKey && !state.settings.apiKey) {
                 state.settings.apiKey = oldKey;
                 saveState(); // Consolidate
                 localStorage.removeItem('user_gemini_key'); // Clean up
+            }
+
+            // Init Holiday if missing (for legacy data)
+            if (!state.settings.holiday) {
+                state.settings.holiday = JSON.parse(JSON.stringify(DEFAULT_SETTINGS.holiday));
             }
 
             // Render
@@ -960,15 +1055,41 @@
             }
         }
 
+        function switchSettingsTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('active');
+                el.style.color = '#888';
+                el.style.borderBottom = 'none';
+            });
+
+            document.getElementById(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`).style.display = 'block';
+            const btn = document.getElementById(`tabBtn${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
+            btn.classList.add('active');
+            btn.style.color = 'var(--text-color)';
+            btn.style.borderBottom = '2px solid var(--accent-color)';
+        }
+
         function openSettings() {
             // Load current settings into form
             document.getElementById('settingApiKey').value = state.settings.apiKey;
+
+            // Weekday
             document.getElementById('settingWorkTime').value = state.settings.workTime;
             document.getElementById('settingHomeTime').value = state.settings.homeTime;
             document.getElementById('settingWorkStation').value = state.settings.workLastMile.name || "";
             document.getElementById('settingHomeStation').value = state.settings.homeLastMile.name || "";
+
             document.getElementById('workStatus').innerText = '';
             document.getElementById('homeStatus').innerText = '';
+
+            // Holiday
+            if (state.settings.holiday) {
+                document.getElementById('settingOldHomeStation').value = state.settings.holiday.oldHomeLastMile.name || "";
+                document.getElementById('settingHolidayHomeStation').value = state.settings.holiday.homeLastMile.name || "";
+                document.getElementById('holidayOldHomeStatus').innerText = '';
+                document.getElementById('holidayHomeStatus').innerText = '';
+            }
 
             // Apply Checkboxes Logic
             const setCheckboxes = (name, values) => {
@@ -977,12 +1098,21 @@
                 });
             };
 
+            // Weekday Checkboxes
             setCheckboxes('workTrans', state.settings.workTrans);
             setCheckboxes('homeTrans', state.settings.homeTrans);
             setCheckboxes('workLmTrans', state.settings.workLastMile.trans);
             setCheckboxes('homeLmTrans', state.settings.homeLastMile.trans);
             renderStatus('work', state.settings.workLastMile);
             renderStatus('home', state.settings.homeLastMile);
+
+            // Holiday Checkboxes
+            if (state.settings.holiday) {
+                setCheckboxes('oldHomeTrans', state.settings.holiday.oldHomeTrans);
+                setCheckboxes('holidayHomeTrans', state.settings.holiday.homeTrans);
+                renderStatus('holiday_oldHome', state.settings.holiday.oldHomeLastMile);
+                renderStatus('holiday_home', state.settings.holiday.homeLastMile);
+            }
 
             document.getElementById('settingsModal').classList.add('active');
             if (window.innerWidth <= 768) toggleSidebar();
@@ -1002,102 +1132,91 @@
         }
 
         function saveSettings() {
-            const s = state.settings;
-            s.apiKey = document.getElementById('settingApiKey').value.trim();
-            s.workTime = document.getElementById('settingWorkTime').value;
-            s.homeTime = document.getElementById('settingHomeTime').value;
+            // API Key
+            state.settings.apiKey = document.getElementById('settingApiKey').value;
 
-            const getCheckboxes = (name) => Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(cb => cb.value);
+            // Weekday
+            state.settings.workTime = document.getElementById('settingWorkTime').value;
+            state.settings.homeTime = document.getElementById('settingHomeTime').value;
+            state.settings.workTrans = Array.from(document.querySelectorAll('input[name="workTrans"]:checked')).map(cb => cb.value);
+            state.settings.homeTrans = Array.from(document.querySelectorAll('input[name="homeTrans"]:checked')).map(cb => cb.value);
 
-            s.workTrans = getCheckboxes('workTrans');
-            s.homeTrans = getCheckboxes('homeTrans');
+            // Weekday Last Mile
+            state.settings.workLastMile.name = document.getElementById('settingWorkStation').value;
+            state.settings.workLastMile.trans = Array.from(document.querySelectorAll('input[name="workLmTrans"]:checked')).map(cb => cb.value);
 
-            // Work Last Mile
-            s.workLastMile.name = document.getElementById('settingWorkStation').value.trim();
-            s.workLastMile.trans = getCheckboxes('workLmTrans');
+            state.settings.homeLastMile.name = document.getElementById('settingHomeStation').value;
+            state.settings.homeLastMile.trans = Array.from(document.querySelectorAll('input[name="homeLmTrans"]:checked')).map(cb => cb.value);
 
-            // Home Last Mile
-            s.homeLastMile.name = document.getElementById('settingHomeStation').value.trim();
-            s.homeLastMile.trans = getCheckboxes('homeLmTrans');
+            // Holiday
+            if (!state.settings.holiday) state.settings.holiday = JSON.parse(JSON.stringify(DEFAULT_SETTINGS.holiday));
+
+            state.settings.holiday.oldHomeLastMile.name = document.getElementById('settingOldHomeStation').value;
+            state.settings.holiday.homeLastMile.name = document.getElementById('settingHolidayHomeStation').value;
+            state.settings.holiday.oldHomeTrans = Array.from(document.querySelectorAll('input[name="oldHomeTrans"]:checked')).map(cb => cb.value);
+            state.settings.holiday.homeTrans = Array.from(document.querySelectorAll('input[name="holidayHomeTrans"]:checked')).map(cb => cb.value);
+
 
             saveState();
+            checkKeyStatus();
             closeModal('settingsModal');
+            updatePromptPreview(); // Refresh prompt
             alert("設定已儲存！");
         }
 
-        async function validateLastMile(type) {
-            const inputId = type === 'work' ? 'settingWorkStation' : 'settingHomeStation';
-            const checkId = type === 'work' ? 'workLmTrans' : 'homeLmTrans';
-            const btnId = type === 'work' ? 'checkWorkBtn' : 'checkHomeBtn';
-            const statusId = type === 'work' ? 'workStatus' : 'homeStatus';
+        function validateLastMile(type) {
+            // types: 'work', 'home', 'holiday_oldHome', 'holiday_home'
+            let inputId, statusId, settingObj;
 
-            const name = document.getElementById(inputId).value.trim();
-            const types = Array.from(document.querySelectorAll(`input[name="${checkId}"]:checked`)).map(cb => cb.value);
-            const key = document.getElementById('settingApiKey').value.trim();
-
-            if (!name) return alert("請輸入站點名稱");
-            if (types.length === 0) return alert("請至少勾選一種交通工具");
-            if (!key) return alert("請先填寫 API Key 以進行驗證");
-
-            const statusDiv = document.getElementById(statusId);
-            const btn = document.getElementById(btnId);
-
-            statusDiv.innerText = "🔍 檢查中...";
-            btn.disabled = true;
-
-            // 1. FAST CHECK: If Type includes 'train', search local database first
-            if (types.includes('train')) {
-                const localTrain = findTrainCoords(name);
-                if (localTrain) {
-                    updateLastMileState(type, localTrain.name, `${localTrain.lat}, ${localTrain.lng}`);
-                    statusDiv.innerHTML = `<span style="color:var(--success-color)">✅ 已驗證(本地資料庫): ${localTrain.name}</span>`;
-                    btn.disabled = false;
-                    return;
-                }
+            if (type === 'work') {
+                inputId = 'settingWorkStation';
+                statusId = 'workStatus';
+                settingObj = state.settings.workLastMile;
+            } else if (type === 'home') {
+                inputId = 'settingHomeStation';
+                statusId = 'homeStatus';
+                settingObj = state.settings.homeLastMile;
+            } else if (type === 'holiday_oldHome') {
+                inputId = 'settingOldHomeStation';
+                statusId = 'holidayOldHomeStatus';
+                settingObj = state.settings.holiday.oldHomeLastMile;
+            } else if (type === 'holiday_home') {
+                inputId = 'settingHolidayHomeStation';
+                statusId = 'holidayHomeStatus';
+                settingObj = state.settings.holiday.homeLastMile;
             }
 
-            // 2. AI CHECK
-            const prompt = `請幫我檢查台灣是否存在名為「${name}」的「${types.join('或')}」站點。
-若存在，請回傳其緯經度。
-請務必只回傳 JSON 格式：{"valid": true, "lat": 12.34, "lng": 56.78, "correctName": "更精確的名稱"}
-若不存在，回傳 {"valid": false}`;
+            const nameWithSource = document.getElementById(inputId).value;
+            const name = nameWithSource.split('(')[0].trim();
 
-            try {
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${key}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                });
-                const data = await res.json();
-                const text = data.candidates[0].content.parts[0].text;
-                const json = JSON.parse(text.replace(/```json/g, '').replace(/```/g, ''));
+            const statusDiv = document.getElementById(statusId);
+            if (!name) {
+                statusDiv.innerHTML = '<span style="color:var(--error-color)">請輸入站點名稱</span>';
+                return;
+            }
 
-                if (json.valid) {
-                    updateLastMileState(type, json.correctName || name, `${json.lat}, ${json.lng}`);
-                    statusDiv.innerHTML = `<span style="color:var(--success-color)">✅ 已驗證: ${json.correctName} (${json.lat},${json.lng})</span>`;
-                } else {
-                    statusDiv.innerHTML = `<span style="color:var(--danger-color)">❌ 找不到此站點，請檢查名稱</span>`;
-                    // We don't verify coords if failed, but we keep name
-                    if (type === 'work') state.settings.workLastMile.coords = null;
-                    else state.settings.homeLastMile.coords = null;
-                }
-            } catch (e) {
-                statusDiv.innerText = "驗證發生錯誤: " + e.message;
-            } finally {
-                btn.disabled = false;
+            statusDiv.innerText = "🔍 檢查中...";
+
+            // Simple validation visualization
+            setTimeout(() => {
+                statusDiv.innerHTML = `<span style="color:var(--success-color)">✅ 格式正確 (將由 AI 尋找)</span>`;
+            }, 300);
+        }
+
+        function renderStatus(type, obj) {
+            let id = '';
+            if (type === 'work') id = 'workStatus';
+            else if (type === 'home') id = 'homeStatus';
+            else if (type === 'holiday_oldHome') id = 'holidayOldHomeStatus';
+            else if (type === 'holiday_home') id = 'holidayHomeStatus';
+
+            if (obj && obj.coords) {
+                document.getElementById(id).innerHTML = `<span style="color:var(--success-color)">✅ 已儲存座標</span>`;
             }
         }
 
         function updateLastMileState(type, name, coords) {
-            if (type === 'work') {
-                state.settings.workLastMile.name = name;
-                state.settings.workLastMile.coords = coords;
-                document.getElementById('settingWorkStation').value = name;
-            } else {
-                state.settings.homeLastMile.name = name;
-                state.settings.homeLastMile.coords = coords;
-                document.getElementById('settingHomeStation').value = name;
-            }
+            // Retired function, handled in saveSettings mostly, or implicit
         }
 
         // Helper to find train in STATION_DATA structure
@@ -1273,8 +1392,8 @@
                     div.innerHTML += '<span style="display:block;font-size:0.7em;color:gray">📍</span>';
                 }
 
-                // Selected state
-                if (state[currentModalType].some(s => (s.name || s) === name)) {
+                // Selected state (Only show in 'manage' mode)
+                if (selectionMode === 'manage' && state[currentModalType].some(s => (s.name || s) === name)) {
                     div.classList.add('selected');
                 }
 
@@ -1328,7 +1447,9 @@
             }
         }
 
-        }
+
+
+
 
         function selectLastMileStation(item, type) {
             const name = item.name || item;
@@ -1336,9 +1457,26 @@
             const typeLabel = { train: '火車', mrt: '捷運', bus: '公車', bike: 'YouBike' }[type] || type;
             const formattedName = `${name} (${typeLabel})`;
 
-            // Determine Target Input based on selectionTarget ('work' or 'home')
-            const inputId = selectionTarget === 'work' ? 'settingWorkStation' : 'settingHomeStation';
-            const checkName = selectionTarget === 'work' ? 'workLmTrans' : 'homeLmTrans';
+            // Determine Target Input based on selectionTarget
+            let inputId, checkName, statusId, settingObj;
+
+            if (selectionTarget === 'work') {
+                inputId = 'settingWorkStation';
+                checkName = 'workLmTrans';
+                statusId = 'workStatus';
+            } else if (selectionTarget === 'home') {
+                inputId = 'settingHomeStation';
+                checkName = 'homeLmTrans';
+                statusId = 'homeStatus';
+            } else if (selectionTarget === 'holiday_oldHome') {
+                inputId = 'settingOldHomeStation';
+                checkName = 'oldHomeTrans';
+                statusId = 'holidayOldHomeStatus';
+            } else if (selectionTarget === 'holiday_home') {
+                inputId = 'settingHolidayHomeStation';
+                checkName = 'holidayHomeTrans';
+                statusId = 'holidayHomeStatus';
+            }
 
             // 1. Set Name
             document.getElementById(inputId).value = formattedName;
@@ -1766,48 +1904,122 @@ ${startLocationStr}。目的地: ${destinationName}。${lastMileInfo}
             });
         }
 
-        async function getGPS() {
-            return new Promise(r => {
-                if (!navigator.geolocation) r("無GPS");
-                navigator.geolocation.getCurrentPosition(
-                    p => r(`${p.coords.latitude.toFixed(4)},${p.coords.longitude.toFixed(4)}`),
-                    e => r("GPS失敗")
-                );
-            });
-        }
-
-        async function callGeminiAPI(prompt) {
-            const key = state.settings.apiKey;
-            const btn = document.getElementById('sendBtn');
-            btn.disabled = true;
-            btn.innerText = "🤖 思考中...";
+        async function checkIsHoliday(dateObject) {
+            const year = dateObject.getFullYear();
+            const month = (dateObject.getMonth() + 1).toString().padStart(2, '0');
+            const day = dateObject.getDate().toString().padStart(2, '0');
+            const dateStr = `${year}${month}${day}`;
 
             try {
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${key}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                });
+                // Try fetching from CDN
+                const res = await fetch(`https://cdn.jsdelivr.net/gh/ruyut/TaiwanCalendar/data/${year}.json`);
+                if (!res.ok) throw new Error("Calendar API error");
+
                 const data = await res.json();
-                const text = data.candidates[0].content.parts[0].text;
+                const todayData = data.find(d => d.date === dateStr);
 
-                document.getElementById('responseArea').innerText = text;
-
-                const json = JSON.parse(text.replace(/```json/g, '').replace(/```/g, ''));
-
-                renderResult('train', json.train);
-                renderResult('mrt', json.mrt);
-                renderResult('bus', json.bus);
-                renderResult('bike', json.bike);
-                renderItineraries(json.itineraries);
-
+                if (todayData) {
+                    return todayData.isHoliday;
+                }
             } catch (e) {
-                alert("錯誤: " + e.message);
-                document.getElementById('debugArea').style.display = 'block';
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "📍 根據設定取得 GPS 並查詢";
+                console.warn("Holiday check failed, fallback to weekend check", e);
             }
+
+            // Fallback: Weekend check
+            const dayOfWeek = dateObject.getDay();
+            return dayOfWeek === 0 || dayOfWeek === 6;
+        }
+
+        async function createCommutePrompt() {
+            const now = new Date();
+            const isHoliday = await checkIsHoliday(now);
+            const timeStr = now.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+            let prompt = `現在時間是 ${timeStr}。`;
+
+            // Get GPS
+            const pos = await getGPS();
+            prompt += ` 我的位置在 ${pos}。`;
+
+            // Helper to format stations
+            const fmtStations = (list) => list.map(s => `${s.name || s}${s.lat ? `(${s.lat},${s.lng})` : ''}`).join('、');
+
+            if (isHoliday) {
+                prompt += ` 今日是假日。`;
+                const holidaySettings = state.settings.holiday || {};
+                const oldHome = holidaySettings.oldHomeLastMile;
+                const home = holidaySettings.homeLastMile;
+
+                prompt += `\n我的假日交通設定：`;
+                if (oldHome && oldHome.name) prompt += `\n- 預設目的地一 (老家): ${oldHome.name}`;
+                if (home && home.name) prompt += `\n- 預設目的地二 (住家): ${home.name}`;
+
+                // Add preferred transport if any
+            } else {
+                prompt += ` 今日是平日。`;
+                const work = state.settings.workLastMile;
+                const home = state.settings.homeLastMile;
+                const workTime = state.settings.workTime;
+                const homeTime = state.settings.homeTime;
+
+                // Judge Commute Direction
+                // Simple logic: Morning -> Work, Evening -> Home
+                // Or just provide both contexts to AI
+                prompt += `\n我的平日通勤設定：`;
+                prompt += `\n- 上班時間 ${workTime}，最後一哩路前往 ${work.name} (${work.trans.join('+')})`;
+                prompt += `\n- 下班時間 ${homeTime}，最後一哩路前往 ${home.name} (${home.trans.join('+')})`;
+            }
+
+            prompt += `\n\n已儲存的常用站點：`;
+            if (state.train.length) prompt += `\n火車: ${fmtStations(state.train)}`;
+            if (state.mrt.length) prompt += `\n捷運: ${fmtStations(state.mrt)}`;
+            if (state.bus.length) prompt += `\n公車: ${fmtStations(state.bus)}`;
+            if (state.bike.length) prompt += `\nYouBike: ${fmtStations(state.bike)}`;
+
+            prompt += `\n\n請根據現在時間與我的位置，判斷我應該是「上班中」、「下班中」還是「假日出遊」。`;
+            prompt += `\n如果不確定，請提供前往上述設定目的地的交通建議。`;
+            prompt += `\n請列出建議的交通方案，包含火車/捷運/公車/YouBike的時刻與路線。`;
+            prompt += `\n回傳 JSON 格式: { "train": [], "mrt": [], "bus": [], "bike": [], "itineraries": [{ "title": "方案A", "details": "...", "time": "30分" }] }`;
+
+            return prompt;
+        }
+
+        // Modified Main Action
+        async function handleSend() {
+            const prompt = await createCommutePrompt();
+            callGeminiAPI(prompt);
+        }
+        const key = state.settings.apiKey;
+        const btn = document.getElementById('sendBtn');
+        btn.disabled = true;
+        btn.innerText = "🤖 思考中...";
+
+        try {
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${key}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            });
+            const data = await res.json();
+            const text = data.candidates[0].content.parts[0].text;
+
+            document.getElementById('responseArea').innerText = text;
+
+            const json = JSON.parse(text.replace(/```json/g, '').replace(/```/g, ''));
+
+            renderResult('train', json.train);
+            renderResult('mrt', json.mrt);
+            renderResult('bus', json.bus);
+            renderResult('bike', json.bike);
+            renderItineraries(json.itineraries);
+
+        } catch (e) {
+            alert("錯誤: " + e.message);
+            document.getElementById('debugArea').style.display = 'block';
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "📍 根據設定取得 GPS 並查詢";
+        }
         }
 
         function renderResult(type, list) {

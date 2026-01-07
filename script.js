@@ -307,6 +307,7 @@ function openStationModal(type, mode) {
 
     document.getElementById('modalSearch').value = '';
 
+    const helpText = document.getElementById('modalHelpText');
     renderSidebar(type);
     selectCategory('ADDED'); // Default view
     document.getElementById('stationModal').classList.add('active');
@@ -438,7 +439,7 @@ function renderGrid(items) {
             div.classList.add('selected');
         }
 
-        div.onclick = () => toggleStation(item);
+        div.onclick = (e) => toggleStation(item, e.currentTarget);
         grid.appendChild(div);
     });
 }
@@ -509,7 +510,7 @@ function renderResult(type, list) {
     }
 }
 
-function toggleStation(item) {
+function toggleStation(item, element = null) {
     // Check Selection Mode
     if (selectionMode === 'select') {
         selectLastMileStation(item, currentModalType);
@@ -522,30 +523,27 @@ function toggleStation(item) {
 
     if (idx >= 0) {
         list.splice(idx, 1);
+        if (element && currentCategory !== 'ADDED') {
+            element.classList.remove('selected');
+        }
     } else {
         // Ensure object structure
         list.push(typeof item === 'object' ? item : { name: item, lat: null, lng: null });
+        if (element && currentCategory !== 'ADDED') {
+            element.classList.add('selected');
+        }
     }
 
     saveState();
-    renderAllStations();
-
-    if (document.getElementById('modalSearch').value) {
-        // Re-filter if searching, but function not in local scope? 
-        // We need 'filterStations'.
-        filterStations(document.getElementById('modalSearch').value);
-    } else {
-        // Re-render grid to update selection style
-        // We don't know exact context, just re-click category?
-        // Simpler: Just rely on live update if easy.
-        // Actually, 'selectCategory' re-renders.
+    // Only re-render if in "ADDED" view, otherwise just update the style of the clicked element
+    if (currentCategory === 'ADDED' || !element) {
+        renderAllStations();
         if (currentCategory === 'ADDED') {
             renderGrid(state[currentModalType]);
-        } else {
-            // Reload current view?
-            // Accessing nested data is hard. 
-            // Let's just assume user sees change on dashboard.
         }
+    } else {
+        // Background update for main dashboard list
+        renderAllStations();
     }
 }
 

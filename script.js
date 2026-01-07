@@ -978,3 +978,40 @@ function renderBusSearchUI() {
     // Initial render of added stations
     renderGrid(state['bus']);
 }
+
+// --- INIT ---
+document.addEventListener('DOMContentLoaded', () => {
+    loadState();
+    checkKeyStatus();
+    renderAllStations();
+
+    // Tab Event Listeners
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const tabName = e.target.id.replace('tabBtn', '').toLowerCase();
+            switchSettingsTab(tabName);
+        });
+    });
+
+    // Auto-fetch YouBike data if user has bike stations
+    if (state.bike.length > 0) {
+        // Find center of first station or default?
+        // Actually fetchYouBikeData handles fetching all stations in known areas if needed, or we just force refresh current view?
+        // The implementation in api_service handles fetching based on current map center or default.
+        // For dashboard list update, we just need the data.
+        // Let's assume user is in Taipei/New Taipei/Taoyuan for now or use the first station's coordinates?
+        // Actually askGeminiForStations might have been better but we just want status.
+        // Let's simplified: just fetch default area or nothing.
+        // Wait, the previous implementation of fetchYouBikeData uses lat/lng.
+        // If we don't have a map center, what do we do?
+        // We can just try to fetch if we have saved stations.
+
+        // Just trigger a fetch around a default point or the first saved station
+        if (state.bike[0] && state.bike[0].lat) {
+            const s = state.bike[0];
+            fetchYouBikeData(s.lat, s.lng, true);
+        } else {
+            fetchYouBikeData(25.0330, 121.5654, true); // Default Taipei 101
+        }
+    }
+});

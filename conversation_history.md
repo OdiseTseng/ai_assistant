@@ -4,6 +4,16 @@
 
 本文件作為我們對話的永久記錄，讓您可以透過同步此儲存庫，在不同機器（Windows/Mac）上存取上下文和歷史記錄。
 
+## 更新 API 模型與版本
+**日期：** 2026-01-07
+**ID：** `update_api_model_v1`
+
+**目標：**
+將 Gemini API 模型更新為 `gemini-2.5-pro`，並將 API 版本從 `v1beta` 更改為 `v1`。
+
+**關鍵行動：**
+- **修改 api_service.js**：將所有 API 呼叫的 URL 從 `.../v1beta/models/gemini-3-flash-preview...` 更新為 `.../v1/models/gemini-2.5-pro...`。
+
 ## 再次修正重複名稱顯示問題
 **日期：** 2026-01-07
 **ID：** `fix_duplicate_name_persistence`

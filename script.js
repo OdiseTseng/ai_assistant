@@ -159,15 +159,10 @@ function openSettings() {
     document.getElementById('settingWorkStation').value = state.settings.workLastMile.name || "";
     document.getElementById('settingHomeStation').value = state.settings.homeLastMile.name || "";
 
-    document.getElementById('workStatus').innerText = '';
-    document.getElementById('homeStatus').innerText = '';
-
     // Holiday
     if (state.settings.holiday) {
         document.getElementById('settingOldHomeStation').value = state.settings.holiday.oldHomeLastMile.name || "";
         document.getElementById('settingHolidayHomeStation').value = state.settings.holiday.homeLastMile.name || "";
-        document.getElementById('holidayOldHomeStatus').innerText = '';
-        document.getElementById('holidayHomeStatus').innerText = '';
     }
 
     // Apply Checkboxes Logic (Transport-in-transit only)
@@ -180,13 +175,10 @@ function openSettings() {
     // Weekday Checkboxes
     setCheckboxes('workTrans', state.settings.workTrans);
     setCheckboxes('homeTrans', state.settings.homeTrans);
-    renderStatus('work', state.settings.workLastMile);
-    renderStatus('home', state.settings.homeLastMile);
 
     // Holiday Checkboxes
     if (state.settings.holiday) {
-        renderStatus('holiday_oldHome', state.settings.holiday.oldHomeLastMile);
-        renderStatus('holiday_home', state.settings.holiday.homeLastMile);
+        // renderStatus removed
     }
 
     document.getElementById('settingsModal').classList.add('active');
@@ -244,45 +236,8 @@ function saveSettings() {
     alert("設定已儲存！");
 }
 
-function validateLastMile(type) {
-    let inputId, statusId;
 
-    if (type === 'work') {
-        inputId = 'settingWorkStation';
-        statusId = 'workStatus';
-    } else if (type === 'home') {
-        inputId = 'settingHomeStation';
-        statusId = 'homeStatus';
-    } else if (type === 'holiday_oldHome') {
-        inputId = 'settingOldHomeStation';
-        statusId = 'holidayOldHomeStatus';
-    } else if (type === 'holiday_home') {
-        inputId = 'settingHolidayHomeStation';
-        statusId = 'holidayHomeStatus';
-    }
 
-    const nameWithSource = document.getElementById(inputId).value;
-    const name = nameWithSource.split('(')[0].trim();
-
-    const statusDiv = document.getElementById(statusId);
-    if (!name) {
-        statusDiv.innerHTML = '<span style="color:var(--error-color)">請輸入站點名稱</span>';
-        return;
-    }
-
-    statusDiv.innerText = "🔍 檢查中...";
-    setTimeout(() => {
-        statusDiv.innerHTML = `<span style="color:var(--success-color)">✅ 格式正確 (將由 AI 尋找)</span>`;
-    }, 300);
-}
-
-function renderStatus(type, obj) {
-    const div = document.getElementById(`${type === 'holiday_oldHome' ? 'holidayOldHome' : type === 'holiday_home' ? 'holidayHome' : type}Status`);
-    // Note: status ID logic above might need matching index.html IDs exactly.
-    // Index.html IDs: workStatus, homeStatus, holidayOldHomeStatus, holidayHomeStatus.
-    // The previous code in index.html had specific logic.
-    // Retrying clean logic:
-}
 
 // --- MODAL & SIDEBAR ---
 function openHelpModal() {
@@ -320,11 +275,24 @@ let currentCategory = '';
 let selectionMode = 'manage'; // 'manage' or 'select' (for last mile)
 let selectionTarget = ''; // 'work', 'home', ...
 
-function openStationModal(type) {
+function openStationModal(type, mode) {
     currentModalType = type;
-    selectionMode = 'manage'; // Default mode
-    selectionTarget = '';
-    document.getElementById('modalTitle').innerText = `管理 ${type === 'bike' ? 'YouBike' : type === 'mrt' ? '捷運' : type === 'bus' ? '公車' : '火車'} 站點`;
+    if (mode === 'select') {
+        // Keep selectionMode = 'select' and selectionTarget from openSourceSelectModal
+        document.getElementById('modalTitle').innerText = `選擇 ${type === 'bike' ? 'YouBike' : type === 'mrt' ? '捷運' : type === 'bus' ? '公車' : '火車'} 站點`;
+        document.getElementById('stationModal').classList.add('modal-overlay-top');
+        document.getElementById('stationModal').classList.remove('modal-overlay');
+        // Hide sourceSelectModal when opening station modal
+        document.getElementById('sourceSelectModal').classList.remove('active');
+    } else {
+        selectionMode = 'manage';
+        selectionTarget = '';
+        document.getElementById('modalTitle').innerText = `管理 ${type === 'bike' ? 'YouBike' : type === 'mrt' ? '捷運' : type === 'bus' ? '公車' : '火車'} 站點`;
+        // Reset class to default
+        document.getElementById('stationModal').classList.remove('modal-overlay-top');
+        document.getElementById('stationModal').classList.add('modal-overlay');
+    }
+
     document.getElementById('modalSearch').value = '';
 
     renderSidebar(type);
@@ -343,34 +311,9 @@ function openStationModal(type) {
 }
 
 function openSourceSelectModal(target) {
-    // Determine type from target? Or allow user to pick type?
-    // Current design: Last Mile can be any type.
-    // So we open a generic modal or ask user?
-    // The previous implementation inferred type or allowed picking.
-    // Actually, checking index.html, `openSourceSelectModal` sets `selectionMode='select'` and defaults to 'train' or last used?
-    // Let's implement a generic picker or just default to Train and let user switch sidebar?
-    // Wait, the sidebar logic relies on `currentModalType`.
-    // We should probably show ALL types in sidebar? Or just pick one to start.
-
     selectionMode = 'select';
     selectionTarget = target;
-    currentModalType = 'train'; // Default start
-
-    document.getElementById('modalTitle').innerText = `選擇最後一哩路站點`;
-
-    // We need to allow switching types. 
-    // The sidebar usually shows categories for the CURRENT type.
-    // Maybe we add Type switching in the modal header?
-    // For now, let's just stick to 'train' and user can close?
-    // No, that limits choice.
-    // Ideally, we have Buttons to switch Type.
-
-    // Simplified: Just open Train. If they want MRT, they might need to go back?
-    // Let's rely on standard `openStationModal` logic but repurposed.
-
-    renderSidebar('train'); // Start with train
-    selectCategory('ADDED');
-    document.getElementById('stationModal').classList.add('active');
+    document.getElementById('sourceSelectModal').classList.add('active');
 }
 
 function renderSidebar(type) {
@@ -445,6 +388,14 @@ function renderSubCategoryGrid(subData) {
     });
 }
 
+// --- HELPER: MAP LINK ---
+function getMapLinkHtml(name, lat, lng) {
+    const url = (lat && lng)
+        ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
+        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name)}`;
+    return `<a href="${url}" target="_blank" style="text-decoration:none; margin-left:5px;" onclick="event.stopPropagation()">🗺️</a>`;
+}
+
 function renderGrid(items) {
     const grid = document.getElementById('modalGrid');
     grid.innerHTML = '';
@@ -458,7 +409,13 @@ function renderGrid(items) {
         const name = item.name || item;
         const div = document.createElement('div');
         div.className = 'grid-item';
-        div.innerText = name;
+
+        // Name + Map Link
+        div.innerHTML = `
+            <span>${name}</span>
+            ${getMapLinkHtml(name, item.lat, item.lng)}
+        `;
+
         if (item.lat || (typeof item === 'object' && item.lat)) {
             div.innerHTML += '<span style="display:block;font-size:0.7em;color:gray">📍</span>';
         }
@@ -524,22 +481,12 @@ function selectLastMileStation(item, type) {
     else if (selectionTarget === 'holiday_oldHome') inputId = 'settingOldHomeStation';
     else if (selectionTarget === 'holiday_home') inputId = 'settingHolidayHomeStation';
 
+
     if (inputId) {
         document.getElementById(inputId).value = formattedName;
-        // Trigger validation visual
-        const statusId = inputId.replace('Station', 'Status').replace('setting', '').toLowerCase();
-        // Mapping: workStatus, homeStatus, holidayOldHomeStatus, holidayHomeStatus
-        // The regex above is imperfect. Logic:
-        let sId = '';
-        if (selectionTarget == 'work') sId = 'workStatus';
-        if (selectionTarget == 'home') sId = 'homeStatus';
-        if (selectionTarget == 'holiday_oldHome') sId = 'holidayOldHomeStatus';
-        if (selectionTarget == 'holiday_home') sId = 'holidayHomeStatus';
-
-        document.getElementById(sId).innerHTML = `<span style="color:var(--success-color)">✅ 已選擇: ${name}</span>`;
     }
     closeModal('stationModal');
-    openSettings(); // Return to settings
+    // openSettings(); // Do not reload settings, as it overwrites current inputs with saved state
 }
 
 function filterStations(query) {
@@ -584,7 +531,13 @@ function renderAllStations() {
             state[type].forEach((s, idx) => {
                 const div = document.createElement('div');
                 div.className = 'station-tag';
-                div.innerHTML = `${s.name || s} <span class="remove-icon" onclick="removeStation('${type}', ${idx})">×</span>`;
+                // Add Map Link
+                const name = s.name || s;
+                div.innerHTML = `
+                    ${name} 
+                    ${getMapLinkHtml(name, s.lat, s.lng)}
+                    <span class="remove-icon" onclick="removeStation('${type}', ${idx})">×</span>
+                `;
                 container.appendChild(div);
             });
         }
@@ -639,7 +592,15 @@ function renderResult(type, list) {
         }
         list.forEach(t => {
             const d = document.createElement('div');
-            d.innerText = t;
+            // Handle both string and object (AI returns objects now)
+            const name = (typeof t === 'object' && t.name) ? t.name : t;
+            const lat = (typeof t === 'object' && t.lat) ? t.lat : null;
+            const lng = (typeof t === 'object' && t.lng) ? t.lng : null;
+
+            d.innerHTML = `
+                ${name} 
+                ${getMapLinkHtml(name, lat, lng)}
+            `;
             d.style.padding = "5px 0";
             d.style.borderBottom = "1px solid #333";
             div.appendChild(d);
@@ -661,6 +622,14 @@ function renderItineraries(list) {
             item.style.padding = "10px";
             item.style.background = "rgba(255,255,255,0.05)";
             item.style.borderRadius = "8px";
+
+            // Add map link to title if possible? Detailed steps are text.
+            // Maybe just keep text. User asked for "Stations... add links". 
+            // Itinerary details might mention stations. It's hard to parse.
+            // I'll leave itinerary text as is, or add a generic "Map" link for the title?
+            // "Title" is usually "Option A". Not map-able.
+            // "Details" contains route. 
+            // I'll stick to the requested "Four major blocks" (Result lists) and "Stations" (Grid/Added list).
 
             item.innerHTML = `
                 <div style="color:var(--accent-color); font-weight:bold; margin-bottom:5px;">${i.title || '方案'} <span style="float:right; font-size:0.9em; color:#fff;">⏱ ${i.time || '?'}</span></div>

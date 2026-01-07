@@ -1,8 +1,50 @@
 # AI 助手對話記錄
 
-*產生日期：2026-01-06*
+*產生日期：2026-01-07*
 
 本文件作為我們對話的永久記錄，讓您可以透過同步此儲存庫，在不同機器（Windows/Mac）上存取上下文和歷史記錄。
+
+## 重構 Modal 樣式以修正層級問題
+**日期：** 2026-01-07
+**ID：** `refactor_modal_style_for_z_index`
+
+**目標：**
+因先前的 inline style `z-index` 設定無效，改為建立專用的 CSS class 來強制設定「最後一哩路」彈窗的層級。
+
+**關鍵行動：**
+- **CSS 新增**：在 `style.css` 中複製原有的 `.modal-overlay` 樣式，建立新的 `.modal-overlay-top` class，並將 `z-index` 設定為 `2001`。
+- **HTML 更新**：將 `index.html` 中 `sourceSelectModal` 的 class 替換為新建立的 `.modal-overlay-top`，並移除 inline style。
+
+## 修正 Modal 開啟邏輯與層級
+**日期：** 2026-01-07
+**ID：** `fix_modal_open_logic_and_zindex`
+
+**目標：**
+修正 `openSourceSelectModal` 與 `openStationModal` 之開啟邏輯，確保「最後一哩路」選擇流程中彈窗不會被底層遮擋，並正確顯示「選擇類型」與「選擇站點」視窗。
+
+**關鍵行動：**
+- **修正 `openSourceSelectModal`**：改為開啟新的 `sourceSelectModal` (類型選擇小視窗)，而非直接開啟 `stationModal`。
+- **增強 `openStationModal`**：加入 `mode` 參數。當 `mode === 'select'` 時：
+    - 將 `stationModal` 的 CSS class 動態切換為高層級的 `.modal-overlay-top`。
+    - 關閉 `sourceSelectModal` 以避免堆疊混亂。
+    - 確保 `selectionMode` 狀態正確保留，供選擇站點後回填設定使用。
+
+## 修正 UI 層級與移除不再使用的功能
+**日期：** 2026-01-07
+**ID：** `fix_z_index_and_remove_check_feature`
+
+**目標：**
+修正「最後一哩路」選擇彈窗被「個人化設定」彈窗遮擋的問題 (`z-index` 層級)，並移除設定頁面中不再需要的「檢查」按鈕與相關驗證功能。隨後修正因移除狀態元素而導致無法開啟設定彈窗的 Bug。
+
+**關鍵行動：**
+- **UI 層級修正**：
+    - 將 `sourceSelectModal` (最後一哩路彈窗) 移動至 `<body>` 標籤的末端，使其在 DOM 結構中位於其他彈窗之後。
+    - 設定 `sourceSelectModal` 的 `z-index` 為 `2001`，確保其顯示層級高於預設的 `modal-overlay` (1000)。
+- **功能清理**：
+    - 移除 `index.html` 中的「檢查」按鈕 (`checkWorkBtn` 等) 與狀態顯示區塊。
+    - 移除 `script.js` 中的 `validateLastMile` 函數與與狀態顯示 (`renderStatus`) 相關的邏輯。
+- **Bug 修正**：
+    - 修正 `openSettings` 函數，移除對已刪除狀態元素 (`workStatus` 等) 的引用，解決點擊設定無反應的問題。
 
 ## 程式碼重構、公車與 YouBike 搜尋修復及模型更新
 **日期：** 2026-01-06

@@ -35,7 +35,7 @@ async function fetchYouBikeData() {
             const areaCode = s.area_code_2;
             const city = YOUBIKE_AREA_MAP[areaCode] || "其他地區";
             const district = s.district_tw || "其他區";
-            const name = s.name_tw.replace('YouBike2.0_', '');
+            const name = s.name_tw.replace(/YouBike2\.0_|YouBike 2\.0_/gi, '');
 
             // 1. Structure for Modal (City -> District -> Stations)
             if (typeof STATION_DATA !== 'undefined') {
@@ -163,6 +163,7 @@ async function createCommutePrompt(modeOverride = null) {
     prompt += `\n\n請根據現在時間與我的位置，提供最佳交通建議。`;
     if (mode !== 'late_night') {
         prompt += `\n請列出建議的交通方案，包含火車/捷運/公車/YouBike的時刻與路線。`;
+        prompt += `\n針對公車路線，請務必明確指出「上車站牌」與「下車站牌」的名稱 (例如: 從 A站 上車，搭乘 xxx 路，於 B站 下車)。`;
     }
     prompt += `\n回傳 JSON 格式: { "train": [], "mrt": [], "bus": [], "bike": [], "itineraries": [{ "title": "方案A", "details": "...", "time": "30分" }] }`;
 
@@ -191,7 +192,10 @@ async function callGeminiAPI(prompt) {
         const debugArea = document.getElementById('debugArea');
         if (debugArea) debugArea.style.display = 'none';
 
-        const json = JSON.parse(text.replace(/```json/g, '').replace(/```/g, ''));
+        // Extract JSON from potential Markdown or text
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error("無效的 JSON 格式 response");
+        const json = JSON.parse(jsonMatch[0]);
 
         // Render Results (Core logic function, assumed to be global or passed)
         if (typeof renderResult === 'function') {
@@ -248,7 +252,8 @@ async function askGeminiForStations(query, type = 'bike') {
             });
             const data = await res.json();
             const text = data.candidates[0].content.parts[0].text;
-            const json = JSON.parse(text.replace(/```json/g, '').replace(/```/g, ''));
+            const busJsonMatch = text.match(/\{[\s\S]*\}/);
+            const json = busJsonMatch ? JSON.parse(busJsonMatch[0]) : { valid: false, error: "無法解析 AI 回應" };
 
             if (!json.valid) {
                 if (grid) grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--danger-color);">❌ AI 找不到: ${json.error || '未知原因'}</div>`;
@@ -296,7 +301,8 @@ async function askGeminiForStations(query, type = 'bike') {
                 const div = document.createElement('div');
                 div.className = 'grid-item';
                 div.style.borderColor = 'var(--success-color)';
-                div.innerHTML = `🚲 ${m.name}<br><span style="font-size:0.7em;color:#666">${m.region} (官方)</span>`;
+                const mapUrl = `https://www.google.com/maps/search/?api=1&query=${m.lat},${m.lng}`;
+                div.innerHTML = `🚲 ${m.name} <a href="${mapUrl}" target="_blank" onclick="event.stopPropagation()" style="text-decoration:none;">🗺️</a><br><span style="font-size:0.7em;color:#666">${m.region} (官方)</span>`;
                 div.onclick = () => {
                     toggleStation(m);
                     document.getElementById('modalSearch').value = '';
@@ -346,7 +352,8 @@ async function askGeminiForStations(query, type = 'bike') {
         });
         const data = await res.json();
         const text = data.candidates[0].content.parts[0].text;
-        const json = JSON.parse(text.replace(/```json/g, '').replace(/```/g, ''));
+        const bikeJsonMatch = text.match(/\{[\s\S]*\}/);
+        const json = bikeJsonMatch ? JSON.parse(bikeJsonMatch[0]) : { valid: false, error: "無法解析 AI 回應" };
 
         if (!json.valid) {
             if (grid) grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--danger-color);">❌ AI 也找不到: ${json.error || '未知原因'}</div>`;

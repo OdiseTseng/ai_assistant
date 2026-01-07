@@ -183,17 +183,13 @@
                                 YouBike</label>
                         </div>
 
-
                         <!-- Work Last Mile -->
                         <div class="sub-box">
                             <label class="form-label" style="font-size:0.95em;">🏁 最後一哩路 (抵達公司)</label>
                             <div style="display:flex; gap:10px;">
                                 <input type="text" id="settingWorkStation" placeholder="點擊選擇站點..." readonly
                                     onclick="openSourceSelectModal('work')" style="cursor:pointer; background:#2a2a2a;">
-                                <button onclick="validateLastMile('work')" id="checkWorkBtn"
-                                    style="white-space:nowrap; width:auto; padding:0 12px;">檢查</button>
                             </div>
-                            <div id="workStatus" class="status-msg"></div>
                         </div>
                     </div>
 
@@ -215,17 +211,13 @@
                                 YouBike</label>
                         </div>
 
-
                         <!-- Home Last Mile -->
                         <div class="sub-box">
                             <label class="form-label" style="font-size:0.95em;">🏁 最後一哩路 (抵達住家)</label>
                             <div style="display:flex; gap:10px;">
                                 <input type="text" id="settingHomeStation" placeholder="點擊選擇站點..." readonly
                                     onclick="openSourceSelectModal('home')" style="cursor:pointer; background:#2a2a2a;">
-                                <button onclick="validateLastMile('home')" id="checkHomeBtn"
-                                    style="white-space:nowrap; width:auto; padding:0 12px;">檢查</button>
                             </div>
-                            <div id="homeStatus" class="status-msg"></div>
                         </div>
                     </div>
                 </div>
@@ -247,11 +239,7 @@
                                 <input type="text" id="settingOldHomeStation" placeholder="點擊選擇站點..." readonly
                                     onclick="openSourceSelectModal('holiday_oldHome')"
                                     style="cursor:pointer; background:#2a2a2a;">
-                                <!-- Validation button shared logic, slightly tweaked ID -->
-                                <button onclick="validateLastMile('holiday_oldHome')" id="checkOldHomeBtn"
-                                    style="white-space:nowrap; width:auto; padding:0 12px;">檢查</button>
                             </div>
-                            <div id="holidayOldHomeStatus" class="status-msg"></div>
                         </div>
                     </div>
 
@@ -265,40 +253,36 @@
                                 <input type="text" id="settingHolidayHomeStation" placeholder="點擊選擇站點..." readonly
                                     onclick="openSourceSelectModal('holiday_home')"
                                     style="cursor:pointer; background:#2a2a2a;">
-                                <button onclick="validateLastMile('holiday_home')" id="checkHolidayHomeBtn"
-                                    style="white-space:nowrap; width:auto; padding:0 12px;">檢查</button>
                             </div>
-                            <div id="holidayHomeStatus" class="status-msg"></div>
-
                         </div>
                     </div>
                 </div>
 
                 <button class="btn-primary" onclick="saveSettings()">儲存設定</button>
             </div>
+        </div>
+    </div>
 
-            <!-- Source Selection Modal (New) -->
-            <div id="sourceSelectModal" class="modal-overlay" style="z-index: 2000;">
-                <div class="modal-content sm" style="max-width: 400px; text-align: center;">
-                    <div class="modal-header">
-                        <h3>選擇站點</h3>
-                        <button onclick="closeModal('sourceSelectModal')">×</button>
-                    </div>
-                    <div class="modal-body" style="padding: 20px 0;">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                            <button class="btn-menu" onclick="openStationModal('train', 'select')">🚆 火車</button>
-                            <button class="btn-menu" onclick="openStationModal('mrt', 'select')">🚇 捷運</button>
-                            <button class="btn-menu" onclick="openStationModal('bus', 'select')">🚌 公車</button>
-                            <button class="btn-menu" onclick="openStationModal('bike', 'select')">🚲 YouBike</button>
-                        </div>
-                    </div>
+    <!-- Source Selection Modal (New) -->
+    <div id="sourceSelectModal" class="modal-overlay-top">
+        <div class="modal-content sm" style="max-width: 400px; text-align: center;">
+            <div class="modal-header">
+                <h3>選擇站點</h3>
+                <button onclick="closeModal('sourceSelectModal')">×</button>
+            </div>
+            <div class="modal-body" style="padding: 20px 0;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <button class="btn-menu" onclick="openStationModal('train', 'select')">🚆 火車</button>
+                    <button class="btn-menu" onclick="openStationModal('mrt', 'select')">🚇 捷運</button>
+                    <button class="btn-menu" onclick="openStationModal('bus', 'select')">🚌 公車</button>
+                    <button class="btn-menu" onclick="openStationModal('bike', 'select')">🚲 YouBike</button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- HELP MODAL -->
-    <div id="helpModal" class="modal-overlay">
+    <div id="helpModal" class="modal-overlay-top">
         <div class="modal-content sm">
             <div class="modal-header">
                 <h3>❓ 使用說明</h3>
@@ -321,7 +305,8 @@
                         <li><strong>設定 API Key</strong>：
                             <ul>
                                 <li>前往 <a href="https://aistudio.google.com/" target="_blank"
-                                        style="color:var(--accent-color)">Google AI Studio</a> 申請 API Key。</li>
+                                        style="color:var(--accent-color)">Google AI Studio</a> 申請 API Key。
+                                </li>
                                 <li>在個人化設定中輸入 Key 並儲存。</li>
                                 <li><em>注意：Key 僅儲存在您的瀏覽器 LocalStorage 中，不會上傳至伺服器。</em></li>
                             </ul>
@@ -330,7 +315,8 @@
                             <ul>
                                 <li>點擊各區塊的「+」按鈕。</li>
                                 <li><strong>火車</strong>：可透過左側縣市選單或上方搜尋框尋找站點。</li>
-                                <li><strong>公車/YouBike</strong>：直接在搜尋框輸入站點名稱 (如 "307", "捷運板橋站")，並點擊「新增」。</li>
+                                <li><strong>公車/YouBike</strong>：直接在搜尋框輸入站點名稱 (如 "307", "捷運板橋站")，並點擊「新增」。
+                                </li>
                             </ul>
                         </li>
                         <li><strong>發送查詢</strong>：
@@ -346,7 +332,8 @@
                     <ul>
                         <li><strong>Q: 頁面一直提示「尚未偵測到金鑰」？</strong>
                             <p style="margin-top:5px;">請確認您有點擊「儲存設定」按鈕。<br>
-                                <strong>如果您使用 VS Code 的 Preview 功能</strong>：建議直接用電腦的 <strong>Chrome 瀏覽器</strong> 開啟
+                                <strong>如果您使用 VS Code 的 Preview 功能</strong>：建議直接用電腦的 <strong>Chrome
+                                    瀏覽器</strong> 開啟
                                 <code>index.html</code> 檔案。
                             </p>
                         </li>

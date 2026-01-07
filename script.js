@@ -84,6 +84,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof BUILD_INFO !== 'undefined') {
             document.getElementById('versionInfo').innerText = `v${BUILD_INFO.time}`;
         }
+
+        // Fetch YouBike Data if user has bike stations
+        if (state.bike.length > 0) {
+            // fetchYouBikeData is in api_service.js
+            if (typeof fetchYouBikeData === 'function') {
+                fetchYouBikeData().then(() => {
+                    const bikeContainer = document.getElementById('bike-list');
+                    if (bikeContainer) renderAllStations();
+                });
+            }
+        }
     } catch (e) {
         console.error("❌ Init Error:", e);
     }
@@ -610,9 +621,15 @@ function renderAllStations() {
                 div.className = 'station-tag';
                 // Add Map Link
                 const name = s.name || s;
+                let extraInfo = '';
+                if (type === 'bike') {
+                    extraInfo = getBikeInfoHtml(name);
+                }
+
                 div.innerHTML = `
                     ${getMapLinkHtml(name, s.lat, s.lng)}
                     ${name} 
+                    ${extraInfo}
                     <span class="remove-icon" onclick="removeStation('${type}', ${idx})">×</span>
                 `;
                 container.appendChild(div);
@@ -659,6 +676,20 @@ function checkSettingsAndPrompt() {
     }
 }
 
+// Helper to get bike info HTML
+function getBikeInfoHtml(name) {
+    if (!window.youBikeRealTimeMap || !window.youBikeRealTimeMap[name]) return '';
+    const info = window.youBikeRealTimeMap[name];
+    // Color code: Green > 5, Orange > 0, Red = 0
+    const rentColor = info.rent > 3 ? '#4ade80' : (info.rent > 0 ? '#fbbf24' : '#ef4444');
+    // Return: Empty spaces for return
+    const returnColor = info.return > 3 ? '#4ade80' : (info.return > 0 ? '#fbbf24' : '#ef4444');
+
+    return `<span style="font-size:0.8em; margin-left:5px; color:#aaa;">
+        (借:<span style="color:${rentColor}; font-weight:bold;">${info.rent}</span> / 還:<span style="color:${returnColor}; font-weight:bold;">${info.return}</span>)
+    </span>`;
+}
+
 function renderResult(type, list) {
     const div = document.getElementById(`${type}-result`);
     if (div) {
@@ -695,10 +726,20 @@ function renderResult(type, list) {
                         <div style="text-align:center; color:var(--accent-color); margin: 5px 0;">↓</div>
                         <div style="font-weight:bold">${getMapLinkHtml(t.to, t.lat_to, t.lng_to)} ${t.to} <span style="font-weight:normal; color:#aaa"> -下車</span></div>
                     `;
-                } else {
-                    // Default Format for Train/MRT/Bike: "Station - Board" ... "Station - Get Off"
+                } else if (type === 'bike') {
+                    // Bike Format: "Station - Rent" ... "Station - Return"
+                    const fromInfo = getBikeInfoHtml(t.from);
+                    const toInfo = getBikeInfoHtml(t.to);
+
                     d.innerHTML = `
-                        <div style="font-weight:bold">${getMapLinkHtml(t.from, t.lat_from, t.lng_from)} ${t.from} <span style="font-weight:normal; color:#aaa"> -上車${type === 'train' || type === 'mrt' || type === 'bike' ? lineInfo : ''}</span></div>
+                        <div style="font-weight:bold">${getMapLinkHtml(t.from, t.lat_from, t.lng_from)} ${t.from} ${fromInfo} <span style="font-weight:normal; color:#aaa"> -租車</span></div>
+                        <div style="text-align:center; color:var(--accent-color); margin: 5px 0;">↓</div>
+                        <div style="font-weight:bold">${getMapLinkHtml(t.to, t.lat_to, t.lng_to)} ${t.to} ${toInfo} <span style="font-weight:normal; color:#aaa"> -還車</span></div>
+                    `;
+                } else {
+                    // Default Format for Train/MRT: "Station - Board" ... "Station - Get Off"
+                    d.innerHTML = `
+                        <div style="font-weight:bold">${getMapLinkHtml(t.from, t.lat_from, t.lng_from)} ${t.from} <span style="font-weight:normal; color:#aaa"> -上車${lineInfo}</span></div>
                         <div style="text-align:center; color:var(--accent-color); margin: 5px 0;">↓</div>
                         <div style="font-weight:bold">${getMapLinkHtml(t.to, t.lat_to, t.lng_to)} ${t.to} <span style="font-weight:normal; color:#aaa"> -下車</span></div>
                     `;

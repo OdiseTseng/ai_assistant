@@ -11,15 +11,19 @@ const YOUBIKE_AREA_MAP = {
     "10": "臺南市", "11": "高雄市", "12": "屏東縣"
 };
 
-async function fetchYouBikeData() {
-    if (youbikeCache.length > 0) return youbikeCache;
+// Global Map for Real-time Data (Name -> Info)
+window.youBikeRealTimeMap = {};
+
+async function fetchYouBikeData(force = false) {
+    if (!force && youbikeCache.length > 0) return youbikeCache;
 
     console.log("Fetching YouBike Data...");
     const stations = [];
+    window.youBikeRealTimeMap = {}; // Reset map
 
     try {
-        // Unified API for all regions
-        const res = await fetch('https://apis.youbike.com.tw/json/station-min-yb2.json');
+        // Unified API for all regions (Real-time data: station-yb2.json)
+        const res = await fetch('https://apis.youbike.com.tw/json/station-yb2.json');
         const data = await res.json();
 
         // Reset STATION_DATA['bike'] to empty object to populate hierarchies
@@ -37,17 +41,25 @@ async function fetchYouBikeData() {
             const district = s.district_tw || "其他區";
             const name = s.name_tw.replace(/YouBike2\.0_|YouBike 2\.0_/gi, '');
 
+            // Real-time Info
+            const info = {
+                rent: s.available_spaces,
+                return: s.empty_spaces,
+                updated: s.updated_at
+            };
+            window.youBikeRealTimeMap[name] = info;
+
             // 1. Structure for Modal (City -> District -> Stations)
             if (typeof STATION_DATA !== 'undefined') {
                 if (!STATION_DATA['bike'][city]) STATION_DATA['bike'][city] = {};
                 if (!STATION_DATA['bike'][city][district]) STATION_DATA['bike'][city][district] = [];
 
-                const stationObj = { name: name, lat: s.lat, lng: s.lng, region: city };
+                const stationObj = { name: name, lat: s.lat, lng: s.lng, region: city, ...info };
                 STATION_DATA['bike'][city][district].push(stationObj);
             }
 
             // 2. Flat list for AI Search
-            stations.push({ name: name, lat: s.lat, lng: s.lng, region: city });
+            stations.push({ name: name, lat: s.lat, lng: s.lng, region: city, ...info });
         });
 
         console.log("YouBike Data Loaded");
@@ -211,6 +223,12 @@ async function callGeminiAPI(prompt) {
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (!jsonMatch) throw new Error("無效的 JSON 格式 response");
         const json = JSON.parse(jsonMatch[0]);
+
+        // REFRESH YouBike Data if results contain bike info
+        // This ensures the dashboard displays the latest availability
+        if (json.bike && json.bike.length > 0) {
+            await fetchYouBikeData(true); // Force refresh
+        }
 
         // Render Results (Core logic function, assumed to be global or passed)
         if (typeof renderResult === 'function') {

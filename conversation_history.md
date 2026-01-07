@@ -4,6 +4,23 @@
 
 本文件作為我們對話的永久記錄，讓您可以透過同步此儲存庫，在不同機器（Windows/Mac）上存取上下文和歷史記錄。
 
+## 恢復 YouBike 即時資訊與修正 UI 回饋
+**日期：** 2026-01-07
+**ID：** `restore_youbike_availability_and_fix_ui`
+
+**目標：**
+恢復儀表板中顯示 YouBike 即時可借/可還車輛數的功能，修正公車搜尋功能失效的問題，並改善站點選擇時的 UI 視覺回饋。
+
+**關鍵行動：**
+- **YouBike 可用性修復**：
+    - 將 API 來源更改為 `station-yb2.json` 以獲取即時資訊。
+    - 更新 `api_service.js` 與 `script.js`，實作全域可用性 Map 並在儀表板與搜尋結果中顯示 `(借:X / 還:Y)`。
+    - 增加自動資料更新機制，確保開啟時獲取最新資訊。
+- **公車搜尋修復**：
+    - 修正 `openStationModal` 中缺少 `helpText` 變數定義導致的崩潰。
+- **UI 回饋優化**：
+    - 修改 `toggleStation` 直接操作 DOM 元素 class，解決點擊站點無即時視覺回饋的問題。
+
 ## 重構 Modal 樣式以修正層級問題
 **日期：** 2026-01-07
 **ID：** `refactor_modal_style_for_z_index`

@@ -487,33 +487,35 @@ function renderResult(type, list) {
             // Check if it's a Flow Object (Start -> End)
             if (typeof t === 'object' && t.from && t.to) {
                 const lineInfo = t.line ? ` - ${t.line}` : '';
-                const fromStr = (t.from || '').trim();
-                const toStr = (t.to || '').trim();
+
+                // Simple names
+                const nameFrom = (t.from || '').trim();
+                const nameTo = (t.to || '').trim();
 
                 // Special Format for Bus: "Station - Board [Routes]"
                 if (type === 'bus') {
                     d.innerHTML = `
-                        <div style="font-weight:bold">${getMapLinkHtml(t.from, t.lat_from, t.lng_from, fromStr)} <span style="font-weight:normal; color:#aaa"> -搭乘 ${t.line || '公車'}</span></div>
+                        <div style="font-weight:bold">${getMapLinkHtml(nameFrom, t.lat_from, t.lng_from)} <span style="font-weight:normal; color:#aaa"> -搭乘 ${t.line || '公車'}</span></div>
                         <div style="text-align:center; color:var(--accent-color); margin: 5px 0;">↓</div>
-                        <div style="font-weight:bold">${getMapLinkHtml(t.to, t.lat_to, t.lng_to, toStr)} <span style="font-weight:normal; color:#aaa"> -下車</span></div>
+                        <div style="font-weight:bold">${getMapLinkHtml(nameTo, t.lat_to, t.lng_to)} <span style="font-weight:normal; color:#aaa"> -下車</span></div>
                     `;
                 } else if (type === 'bike') {
                     // Bike Format: "Station - Rent" ... "Station - Return"
-                    const fromInfo = getBikeInfoHtml(t.from);
-                    const toInfo = getBikeInfoHtml(t.to);
+                    const fromInfo = getBikeInfoHtml(nameFrom);
+                    const toInfo = getBikeInfoHtml(nameTo);
 
                     d.innerHTML = `
-                        <div style="font-weight:bold">${getMapLinkHtml(t.from, t.lat_from, t.lng_from, fromStr)} ${fromInfo} <span style="font-weight:normal; color:#aaa"> -租車</span></div>
-                        <div style="text-align:center; color:var(--accent-color); margin: 5px 0;">↓</div>
-                        <div style="font-weight:bold">${getMapLinkHtml(t.to, t.lat_to, t.lng_to, toStr)} ${toInfo} <span style="font-weight:normal; color:#aaa"> -還車</span></div>
-                    `;
+                            <div style="font-weight:bold">${getMapLinkHtml(nameFrom, t.lat_from, t.lng_from)} ${fromInfo} <span style="font-weight:normal; color:#aaa"> -租車</span></div>
+                            <div style="text-align:center; color:var(--accent-color); margin: 5px 0;">↓</div>
+                            <div style="font-weight:bold">${getMapLinkHtml(nameTo, t.lat_to, t.lng_to)} ${toInfo} <span style="font-weight:normal; color:#aaa"> -還車</span></div>
+                        `;
                 } else {
                     // Default Format for Train/MRT: "Station - Board" ... "Station - Get Off"
                     d.innerHTML = `
-                        <div style="font-weight:bold">${getMapLinkHtml(t.from, t.lat_from, t.lng_from, fromStr)} <span style="font-weight:normal; color:#aaa"> -上車${lineInfo}</span></div>
-                        <div style="text-align:center; color:var(--accent-color); margin: 5px 0;">↓</div>
-                        <div style="font-weight:bold">${getMapLinkHtml(t.to, t.lat_to, t.lng_to, toStr)} <span style="font-weight:normal; color:#aaa"> -下車</span></div>
-                    `;
+                            <div style="font-weight:bold">${getMapLinkHtml(nameFrom, t.lat_from, t.lng_from)} <span style="font-weight:normal; color:#aaa"> -上車${lineInfo}</span></div>
+                            <div style="text-align:center; color:var(--accent-color); margin: 5px 0;">↓</div>
+                            <div style="font-weight:bold">${getMapLinkHtml(nameTo, t.lat_to, t.lng_to)} <span style="font-weight:normal; color:#aaa"> -下車</span></div>
+                        `;
                 }
             } else {
                 // Fallback for old simple list or simple objects
@@ -527,8 +529,8 @@ function renderResult(type, list) {
                 const nameStr = (typeof name === 'string' ? name : JSON.stringify(name)).trim();
 
                 d.innerHTML = `
-                    ${getMapLinkHtml(nameStr, lat, lng, nameStr)}
-                `;
+                        ${getMapLinkHtml(nameStr, lat, lng)}
+                    `;
             }
             div.appendChild(d);
         });

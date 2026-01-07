@@ -633,6 +633,13 @@ function renderAllStations() {
         if (container) {
             container.innerHTML = '';
             state[type].forEach((s, idx) => {
+                const div = document.createElement('div');
+                div.className = 'station-tag';
+                const name = s.name || s;
+                let extraInfo = '';
+                // Bike info is now only in search results, but if user wants it back or logic needs it:
+                // For now, keep it empty or simple.
+
                 div.innerHTML = `
                     ${getMapLinkHtml(name, s.lat, s.lng, name)}${extraInfo}<span class="remove-icon" onclick="removeStation('${type}', ${idx})">×</span>
                 `;

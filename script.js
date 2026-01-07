@@ -416,11 +416,12 @@ function renderSubCategoryGrid(subData) {
 
 // --- HELPER: MAP LINK ---
 // --- HELPER: MAP LINK ---
-function getMapLinkHtml(name, lat, lng) {
+function getMapLinkHtml(name, lat, lng, text) {
     const url = (lat && lng)
         ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
         : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name)}`;
-    return `<a href="${url}" target="_blank" style="text-decoration:none; margin-right:5px;" onclick="event.stopPropagation()">🗺️</a>`;
+    const content = text || name;
+    return `<a href="${url}" target="_blank" style="text-decoration:none; color:inherit; cursor:pointer;" onclick="event.stopPropagation()">${content}</a>`;
 }
 
 function renderGrid(items) {
@@ -439,8 +440,7 @@ function renderGrid(items) {
 
         // Name + Map Link
         div.innerHTML = `
-            ${getMapLinkHtml(name, item.lat, item.lng)}
-            <span>${name}</span>
+            ${getMapLinkHtml(name, item.lat, item.lng, name)}
         `;
 
         if (item.lat || (typeof item === 'object' && item.lat)) {
@@ -491,9 +491,9 @@ function renderResult(type, list) {
                 // Special Format for Bus: "Station - Board [Routes]"
                 if (type === 'bus') {
                     d.innerHTML = `
-                        <div style="font-weight:bold">${getMapLinkHtml(t.from, t.lat_from, t.lng_from)}${t.from} <span style="font-weight:normal; color:#aaa"> -搭乘 ${t.line || '公車'}</span></div>
+                        <div style="font-weight:bold">${getMapLinkHtml(t.from, t.lat_from, t.lng_from, t.from)} <span style="font-weight:normal; color:#aaa"> -搭乘 ${t.line || '公車'}</span></div>
                         <div style="text-align:center; color:var(--accent-color); margin: 5px 0;">↓</div>
-                        <div style="font-weight:bold">${getMapLinkHtml(t.to, t.lat_to, t.lng_to)}${t.to} <span style="font-weight:normal; color:#aaa"> -下車</span></div>
+                        <div style="font-weight:bold">${getMapLinkHtml(t.to, t.lat_to, t.lng_to, t.to)} <span style="font-weight:normal; color:#aaa"> -下車</span></div>
                     `;
                 } else if (type === 'bike') {
                     // Bike Format: "Station - Rent" ... "Station - Return"
@@ -501,16 +501,16 @@ function renderResult(type, list) {
                     const toInfo = getBikeInfoHtml(t.to);
 
                     d.innerHTML = `
-                        <div style="font-weight:bold">${getMapLinkHtml(t.from, t.lat_from, t.lng_from)} ${t.from} ${fromInfo} <span style="font-weight:normal; color:#aaa"> -租車</span></div>
+                        <div style="font-weight:bold">${getMapLinkHtml(t.from, t.lat_from, t.lng_from, t.from)} ${fromInfo} <span style="font-weight:normal; color:#aaa"> -租車</span></div>
                         <div style="text-align:center; color:var(--accent-color); margin: 5px 0;">↓</div>
-                        <div style="font-weight:bold">${getMapLinkHtml(t.to, t.lat_to, t.lng_to)} ${t.to} ${toInfo} <span style="font-weight:normal; color:#aaa"> -還車</span></div>
+                        <div style="font-weight:bold">${getMapLinkHtml(t.to, t.lat_to, t.lng_to, t.to)} ${toInfo} <span style="font-weight:normal; color:#aaa"> -還車</span></div>
                     `;
                 } else {
                     // Default Format for Train/MRT: "Station - Board" ... "Station - Get Off"
                     d.innerHTML = `
-                        <div style="font-weight:bold">${getMapLinkHtml(t.from, t.lat_from, t.lng_from)}${t.from} <span style="font-weight:normal; color:#aaa"> -上車${lineInfo}</span></div>
+                        <div style="font-weight:bold">${getMapLinkHtml(t.from, t.lat_from, t.lng_from, t.from)} <span style="font-weight:normal; color:#aaa"> -上車${lineInfo}</span></div>
                         <div style="text-align:center; color:var(--accent-color); margin: 5px 0;">↓</div>
-                        <div style="font-weight:bold">${getMapLinkHtml(t.to, t.lat_to, t.lng_to)}${t.to} <span style="font-weight:normal; color:#aaa"> -下車</span></div>
+                        <div style="font-weight:bold">${getMapLinkHtml(t.to, t.lat_to, t.lng_to, t.to)} <span style="font-weight:normal; color:#aaa"> -下車</span></div>
                     `;
                 }
             } else {
@@ -524,8 +524,7 @@ function renderResult(type, list) {
                 }
 
                 d.innerHTML = `
-                    ${getMapLinkHtml(typeof name === 'string' ? name : JSON.stringify(name), lat, lng)}
-                    ${name} 
+                    ${getMapLinkHtml(typeof name === 'string' ? name : JSON.stringify(name), lat, lng, name)}
                 `;
             }
             div.appendChild(d);
@@ -641,8 +640,7 @@ function renderAllStations() {
                 }
 
                 div.innerHTML = `
-                    ${getMapLinkHtml(name, s.lat, s.lng)}
-                    ${name} 
+                    ${getMapLinkHtml(name, s.lat, s.lng, name)} 
                     ${extraInfo}
                     <span class="remove-icon" onclick="removeStation('${type}', ${idx})">×</span>
                 `;

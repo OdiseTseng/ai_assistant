@@ -495,10 +495,20 @@ function renderResult(type, list) {
                         <div style="text-align:center; color:var(--accent-color); margin: 5px 0;">↓</div>
                         <div style="font-weight:bold">${getMapLinkHtml(t.to, t.lat_to, t.lng_to)}${t.to} <span style="font-weight:normal; color:#aaa"> -下車</span></div>
                     `;
-                } else {
-                    // Default Format for Train/MRT/Bike: "Station - Board" ... "Station - Get Off"
+                } else if (type === 'bike') {
+                    // Bike Format: "Station - Rent" ... "Station - Return"
+                    const fromInfo = getBikeInfoHtml(t.from);
+                    const toInfo = getBikeInfoHtml(t.to);
+
                     d.innerHTML = `
-                        <div style="font-weight:bold">${getMapLinkHtml(t.from, t.lat_from, t.lng_from)}${t.from} <span style="font-weight:normal; color:#aaa"> -上車${type === 'train' || type === 'mrt' || type === 'bike' ? lineInfo : ''}</span></div>
+                        <div style="font-weight:bold">${getMapLinkHtml(t.from, t.lat_from, t.lng_from)} ${t.from} ${fromInfo} <span style="font-weight:normal; color:#aaa"> -租車</span></div>
+                        <div style="text-align:center; color:var(--accent-color); margin: 5px 0;">↓</div>
+                        <div style="font-weight:bold">${getMapLinkHtml(t.to, t.lat_to, t.lng_to)} ${t.to} ${toInfo} <span style="font-weight:normal; color:#aaa"> -還車</span></div>
+                    `;
+                } else {
+                    // Default Format for Train/MRT: "Station - Board" ... "Station - Get Off"
+                    d.innerHTML = `
+                        <div style="font-weight:bold">${getMapLinkHtml(t.from, t.lat_from, t.lng_from)}${t.from} <span style="font-weight:normal; color:#aaa"> -上車${lineInfo}</span></div>
                         <div style="text-align:center; color:var(--accent-color); margin: 5px 0;">↓</div>
                         <div style="font-weight:bold">${getMapLinkHtml(t.to, t.lat_to, t.lng_to)}${t.to} <span style="font-weight:normal; color:#aaa"> -下車</span></div>
                     `;
@@ -627,7 +637,7 @@ function renderAllStations() {
                 const name = s.name || s;
                 let extraInfo = '';
                 if (type === 'bike') {
-                    extraInfo = getBikeInfoHtml(name);
+                    // extraInfo = getBikeInfoHtml(name); // Removed per request
                 }
 
                 div.innerHTML = `

@@ -316,7 +316,9 @@ function openStationModal(type, mode) {
         document.getElementById('stationModal').classList.add('modal-overlay');
     }
 
-    document.getElementById('modalSearch').value = '';
+    const searchInput = document.getElementById('modalSearch');
+    searchInput.value = '';
+    searchInput.style.display = type === 'bus' ? 'none' : 'block';
 
     const helpText = document.getElementById('modalHelpText');
     renderSidebar(type);
@@ -903,24 +905,49 @@ function renderBusSearchUI() {
     citySelect.onchange = updateDistricts;
 
     // Labels
+    // Labels
     const l1 = document.createElement('label'); l1.innerText = "1. 選擇縣市"; l1.style.color = "#aaa"; l1.style.fontSize = "0.9em";
     const l2 = document.createElement('label'); l2.innerText = "2. 選擇區域"; l2.style.color = "#aaa"; l2.style.fontSize = "0.9em";
-    const l3 = document.createElement('label'); l3.innerText = "3. 輸入站點關鍵字 (右上方搜尋框)"; l3.style.color = "#aaa"; l3.style.fontSize = "0.9em";
+    const l3 = document.createElement('label'); l3.innerText = "3. 輸入站點關鍵字"; l3.style.color = "#aaa"; l3.style.fontSize = "0.9em";
+
+    // New Search Input (Moved from header)
+    const busInput = document.createElement('input');
+    busInput.id = 'busStationSearchInput';
+    busInput.type = 'text';
+    busInput.placeholder = '例如: 中壢農會';
+    busInput.style.width = "100%";
+    busInput.style.padding = "8px";
+    busInput.style.background = "#222";
+    busInput.style.color = "#fff";
+    busInput.style.border = "1px solid #444";
+    busInput.style.borderRadius = "4px";
 
     // Action Button
     const searchBtn = document.createElement('button');
-    searchBtn.innerText = "🔍 搜尋公車";
+    searchBtn.innerText = "🔍 搜尋站點";
+    searchBtn.id = 'busSearchBtn';
     searchBtn.className = 'btn-primary';
+    searchBtn.disabled = true; // Default disabled
+    searchBtn.style.opacity = "0.5";
     searchBtn.style.marginTop = "10px";
+
+    // Input Handler to enable/disable button
+    busInput.oninput = () => {
+        if (busInput.value.trim().length > 0) {
+            searchBtn.disabled = false;
+            searchBtn.style.opacity = "1";
+        } else {
+            searchBtn.disabled = true;
+            searchBtn.style.opacity = "0.5";
+        }
+    };
+
     searchBtn.onclick = () => {
         const city = document.getElementById('busCitySelect').value;
         const dist = document.getElementById('busDistrictSelect').value;
-        const kw = document.getElementById('modalSearch').value;
+        const kw = busInput.value.trim();
 
-        if (!kw) {
-            alert("請輸入關鍵字");
-            return;
-        }
+        if (!kw) return;
 
         const fullQuery = `${city} ${dist} ${kw} 公車站`;
         askGeminiForStations(fullQuery, 'bus');
@@ -931,6 +958,7 @@ function renderBusSearchUI() {
     container.appendChild(l2);
     container.appendChild(distSelect);
     container.appendChild(l3);
+    container.appendChild(busInput);
     container.appendChild(searchBtn);
 
     sb.appendChild(container);

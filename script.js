@@ -592,14 +592,21 @@ function renderResult(type, list) {
         }
         list.forEach(t => {
             const d = document.createElement('div');
-            // Handle both string and object (AI returns objects now)
-            const name = (typeof t === 'object' && t.name) ? t.name : t;
-            const lat = (typeof t === 'object' && t.lat) ? t.lat : null;
-            const lng = (typeof t === 'object' && t.lng) ? t.lng : null;
+
+            let name = t;
+            let lat = null;
+            let lng = null;
+
+            if (typeof t === 'object' && t !== null) {
+                // Try to find a name property
+                name = t.name || t.station || t.stop || t.title || JSON.stringify(t);
+                lat = t.lat || null;
+                lng = t.lng || null;
+            }
 
             d.innerHTML = `
                 ${name} 
-                ${getMapLinkHtml(name, lat, lng)}
+                ${getMapLinkHtml(typeof name === 'string' ? name : JSON.stringify(name), lat, lng)}
             `;
             d.style.padding = "5px 0";
             d.style.borderBottom = "1px solid #333";
@@ -631,9 +638,12 @@ function renderItineraries(list) {
             // "Details" contains route. 
             // I'll stick to the requested "Four major blocks" (Result lists) and "Stations" (Grid/Added list).
 
+            // Format details: Add line breaks before numbers (e.g. "1. ", "2. ")
+            const formattedDetails = (i.details || '').replace(/(\d+\.)/g, '<br>$1');
+
             item.innerHTML = `
                 <div style="color:var(--accent-color); font-weight:bold; margin-bottom:5px;">${i.title || '方案'} <span style="float:right; font-size:0.9em; color:#fff;">⏱ ${i.time || '?'}</span></div>
-                <div style="font-size:0.9em; color:#ddd;">${i.details || ''}</div>
+                <div style="font-size:0.9em; color:#ddd; line-height: 1.6;">${formattedDetails}</div>
             `;
             div.appendChild(item);
         });

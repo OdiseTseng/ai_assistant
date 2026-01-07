@@ -165,7 +165,7 @@ async function createCommutePrompt(modeOverride = null) {
         prompt += `\n請列出建議的交通方案，包含火車/捷運/公車/YouBike的時刻與路線。`;
         prompt += `\n針對公車路線，請務必明確指出「上車站牌」與「下車站牌」的名稱 (例如: 從 A站 上車，搭乘 xxx 路，於 B站 下車)。`;
     }
-    prompt += `\n回傳 JSON 格式: { "train": [], "mrt": [], "bus": [], "bike": [], "itineraries": [{ "title": "方案A", "details": "...", "time": "30分" }] }`;
+    prompt += `\n回傳 JSON 格式: { "train": [{"name": "站名", "lat": 25.123, "lng": 121.123}, ...], "mrt": [], "bus": [], "bike": [], "itineraries": [{ "title": "方案A", "details": "...", "time": "30分" }] }`;
 
     return prompt;
 }

@@ -590,6 +590,11 @@ function filterStations(query) {
         return;
     }
 
+
+    // Show "Searching..." immediately
+    const grid = document.getElementById('modalGrid');
+    grid.innerHTML = '<span style="color:#666; grid-column:1/-1; text-align:center;">🔍 搜尋中...</span>';
+
     // Set new timeout (2 seconds debounce)
     searchTimeout = setTimeout(() => {
         // AI Check / Official Search
@@ -598,7 +603,6 @@ function filterStations(query) {
             return;
         }
 
-        const grid = document.getElementById('modalGrid');
         grid.innerHTML = '';
 
         // Local Filter for other types (Train/MRT/Bus/Added)

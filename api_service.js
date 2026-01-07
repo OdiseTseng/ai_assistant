@@ -205,8 +205,7 @@ async function callGeminiAPI(prompt) {
 
         const text = data.candidates[0].content.parts[0].text;
 
-        const debugArea = document.getElementById('debugArea');
-        if (debugArea) debugArea.style.display = 'none';
+
 
         // Extract JSON from potential Markdown or text
         const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -226,10 +225,9 @@ async function callGeminiAPI(prompt) {
 
     } catch (e) {
         alert("錯誤: " + e.message);
-        const debugArea = document.getElementById('debugArea');
-        const responseArea = document.getElementById('responseArea');
-        if (debugArea) debugArea.style.display = 'block';
-        if (responseArea) responseArea.innerText = "API Error: " + e.message;
+        if (typeof window.openDebugModal === 'function') {
+            window.openDebugModal();
+        }
     } finally {
         if (btn) {
             btn.disabled = false;

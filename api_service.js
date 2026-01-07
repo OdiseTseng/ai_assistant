@@ -163,9 +163,16 @@ async function createCommutePrompt(modeOverride = null) {
     prompt += `\n\n請根據現在時間與我的位置，提供最佳交通建議。`;
     if (mode !== 'late_night') {
         prompt += `\n請列出建議的交通方案，包含火車/捷運/公車/YouBike的時刻與路線。`;
-        prompt += `\n針對公車路線，請務必明確指出「上車站牌」與「下車站牌」的名稱 (例如: 從 A站 上車，搭乘 xxx 路，於 B站 下車)。`;
+        prompt += `\n針對火車/捷運/公車/YouBike 的個別結果區塊，請不要只列出附近站點，而是要列出「該方案中使用的完整路段資訊」。`;
+        prompt += `\n格式要求: { "from": "上車站名", "to": "下車站名", "line": "路線/車種 (如 112南、區間車)", "lat_from": 上車站緯度, "lng_from": 上車站經度, "lat_to": 下車站緯度, "lng_to": 下車站經度 }`;
     }
-    prompt += `\n回傳 JSON 格式: { "train": [{"name": "站名", "lat": 25.123, "lng": 121.123}, ...], "mrt": [], "bus": [], "bike": [], "itineraries": [{ "title": "方案A", "details": "...", "time": "30分" }] }`;
+    prompt += `\n回傳 JSON 格式: { 
+        "train": [{"from": "松山", "to": "中壢", "line": "自強號", "lat_from": ..., "lng_from": ..., "lat_to": ..., "lng_to": ...}], 
+        "mrt": [], 
+        "bus": [{"from": "中壢公車站", "to": "中山東路口", "line": "112南、169"}], 
+        "bike": [], 
+        "itineraries": [{ "title": "方案A", "details": "...", "time": "30分" }] 
+    }`;
 
     return prompt;
 }

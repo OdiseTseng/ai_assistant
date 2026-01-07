@@ -4,6 +4,16 @@
 
 本文件作為我們對話的永久記錄，讓您可以透過同步此儲存庫，在不同機器（Windows/Mac）上存取上下文和歷史記錄。
 
+## 修正 API 版本回 v1beta
+**日期：** 2026-01-07
+**ID：** `revert_api_v1beta`
+
+**目標：**
+將 Gemini API 呼叫版本修正回 `v1beta`，僅保留模型的更新（`gemini-2.5-pro`），因為該模型目前僅支援 v1beta 路徑。
+
+**關鍵行動：**
+- **修改 api_service.js**：將 API URL 從 `.../v1/models/gemini-2.5-pro...` 修正回 `.../v1beta/models/gemini-2.5-pro...`。
+
 ## 更新 API 模型與版本
 **日期：** 2026-01-07
 **ID：** `update_api_model_v1`

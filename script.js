@@ -577,38 +577,36 @@ function selectLastMileStation(item, type) {
     // openSettings(); // Do not reload settings, as it overwrites current inputs with saved state
 }
 
+let searchTimeout = null;
+
 function filterStations(query) {
     const q = query.trim().toLowerCase();
+
+    // Clear previous timeout
+    if (searchTimeout) clearTimeout(searchTimeout);
+
     if (!q) {
         selectCategory('ADDED');
         return;
     }
 
-    // AI Check
-    if (currentModalType === 'bike') {
-        askGeminiForStations(q, 'bike');
-        return;
-    }
+    // Set new timeout (2 seconds debounce)
+    searchTimeout = setTimeout(() => {
+        // AI Check / Official Search
+        if (currentModalType === 'bike') {
+            askGeminiForStations(q, 'bike');
+            return;
+        }
 
-    const grid = document.getElementById('modalGrid');
-    grid.innerHTML = '';
+        const grid = document.getElementById('modalGrid');
+        grid.innerHTML = '';
 
-    // Flat search in STATION_DATA
-    // Need to traverse...
-    // Simplified: Search in Added first + some presets?
-    // The original code had hybrid search.
-    // Let's implement basic local search.
-
-    // We don't have easy flat list for nested MRT/Train everywhere.
-    // Skip complex search implementation for now or create a flat list on init?
-    // Let's just search 'Added'.
-
-    // For now, if we want robust search, we need the flat Maps available.
-    // Just searching "Added" for MVP to match functionality.
-
-    const results = state[currentModalType].filter(s => (s.name || s).toLowerCase().includes(q));
-    renderGrid(results);
+        // Local Filter for other types (Train/MRT/Bus/Added)
+        const results = state[currentModalType].filter(s => (s.name || s).toLowerCase().includes(q));
+        renderGrid(results);
+    }, 2000);
 }
+
 
 
 function renderAllStations() {

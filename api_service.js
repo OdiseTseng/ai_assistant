@@ -187,6 +187,9 @@ async function callGeminiAPI(prompt) {
         btn.innerText = "🤖 思考中...";
     }
 
+    // Debug Capture (Prompt)
+    window.lastDebugData = { prompt: prompt, response: "Thinking..." };
+
     try {
         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${key}`, {
             method: 'POST',
@@ -194,6 +197,12 @@ async function callGeminiAPI(prompt) {
             body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
         });
         const data = await res.json();
+
+        // Debug Capture (Response Raw)
+        if (data) {
+            window.lastDebugData.response = data;
+        }
+
         const text = data.candidates[0].content.parts[0].text;
 
         const debugArea = document.getElementById('debugArea');

@@ -255,6 +255,18 @@ function closeModal(id) {
     document.getElementById(id).classList.remove('active');
 }
 
+// --- DEBUG CONSOLE ---
+window.lastDebugData = { prompt: "尚無查詢紀錄", response: "尚無回應紀錄" };
+
+function openDebugModal() {
+    document.getElementById('debugPrompt').value = window.lastDebugData.prompt;
+    const responseText = typeof window.lastDebugData.response === 'object'
+        ? JSON.stringify(window.lastDebugData.response, null, 2)
+        : window.lastDebugData.response;
+    document.getElementById('debugResponse').value = responseText;
+    document.getElementById('debugModal').classList.add('active');
+}
+
 // --- GPS ---
 function getGPS() {
     return new Promise((resolve) => {

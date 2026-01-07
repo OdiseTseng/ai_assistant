@@ -347,6 +347,30 @@
         </div>
     </div>
 
+    <!-- Debug Console Modal -->
+    <div id="debugModal" class="modal-overlay">
+        <div class="modal-content debug-modal"
+            style="width: 90vw; height: 90vh; display: flex; flex-direction: column;">
+            <div class="modal-header">
+                <h2>🛠️ 後台 Debug Console</h2>
+                <span class="close-btn" onclick="closeModal('debugModal')">&times;</span>
+            </div>
+            <div class="modal-body"
+                style="flex: 1; display: flex; flex-direction: column; overflow: hidden; gap: 10px;">
+                <div style="flex: 1; display: flex; flex-direction: column;">
+                    <label style="color: var(--accent-color); font-weight: bold;">📤 Sent Prompt</label>
+                    <textarea id="debugPrompt" readonly
+                        style="flex: 1; width: 100%; background: #111; color: #0f0; padding: 10px; font-family: monospace; border: 1px solid #333; resize: none;"></textarea>
+                </div>
+                <div style="flex: 1; display: flex; flex-direction: column;">
+                    <label style="color: var(--accent-color); font-weight: bold;">📥 Received Response</label>
+                    <textarea id="debugResponse" readonly
+                        style="flex: 1; width: 100%; background: #111; color: #0df; padding: 10px; font-family: monospace; border: 1px solid #333; resize: none;"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="version.js"></script>
     <script src="station_data.js"></script>

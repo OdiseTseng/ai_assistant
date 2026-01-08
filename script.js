@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Version
         if (typeof BUILD_INFO !== 'undefined') {
-            document.getElementById('versionInfo').innerText = `v${BUILD_INFO.time}`;
+            document.getElementById('versionInfo').innerText = `最後更新於 ${BUILD_INFO.time}`;
         }
 
         // Fetch YouBike Data if user has bike stations

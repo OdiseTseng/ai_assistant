@@ -4,6 +4,29 @@
 
 本文件作為我們對話的永久記錄，讓您可以透過同步此儲存庫，在不同機器（Windows/Mac）上存取上下文和歷史記錄。
 
+## 調查 API 503 錯誤
+**日期：** 2026-01-08
+**ID：** `investigate_503_error`
+
+**目標：**
+釐清使用者回報的 "The model is overloaded" (503) 錯誤原因。
+
+**關鍵行動：**
+- **錯誤分析**：檢視 `api_service.js` 與錯誤訊息，確認此為 Google Gemini API 伺服器負載過高所致的暫時性錯誤。
+- **結論**：非程式碼邏輯問題，建議稍後再試。
+
+## 調查 Commit 生成錯誤
+**日期：** 2026-01-08
+**ID：** `investigate_commit_gen_error`
+
+**目標：**
+釐清使用者在使用 IDE "Generate Commit Message" 功能時遇到的 `stream error`。
+
+**關鍵行動：**
+- **錯誤分析**：訊息 `error grabbing LLM response: stream error` 顯示 AI 模型的回應串流中斷或失敗。
+- **關聯性**：此問題與先前的 `503 Service Unavailable` 高度相關，皆指向後端 AI 服務 (LLM) 目前不穩定或負載過重。
+- **手動變更記錄**：使用者手動更新了 `script.js` 中的版本顯示文字 (`v` -> `最後更新於`)。
+
 ## 修改 AI 模型為 2.0 Flash
 **日期：** 2026-01-08
 **ID：** `update_model_to_2_0_flash`

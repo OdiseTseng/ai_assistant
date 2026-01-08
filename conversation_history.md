@@ -27,6 +27,18 @@
 - **關聯性**：此問題與先前的 `503 Service Unavailable` 高度相關，皆指向後端 AI 服務 (LLM) 目前不穩定或負載過重。
 - **手動變更記錄**：使用者手動更新了 `script.js` 中的版本顯示文字 (`v` -> `最後更新於`)。
 
+## 設定 Git 使用者身份
+**日期：** 2026-01-08
+**ID：** `configure_git_identity`
+
+**目標：**
+設定全域 Git 使用者名稱與 Email，以解決 Commit 時的身分驗證問題。
+
+**關鍵行動：**
+- **Git Config**：
+    - `user.name`: "Odise"
+    - `user.email`: "odise9411272@gmail.com"
+
 ## 修改 AI 模型為 2.0 Flash
 **日期：** 2026-01-08
 **ID：** `update_model_to_2_0_flash`

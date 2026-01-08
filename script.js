@@ -278,6 +278,52 @@ function openDebugModal() {
     document.getElementById('debugModal').classList.add('active');
 }
 
+function simulateRendering() {
+    let raw = document.getElementById('debugResponse').value;
+    if (!raw) return alert("❌ 請輸入 JSON");
+
+    try {
+        let json;
+        // 1. Try to parse as Object first
+        let parsedObj;
+        try {
+            parsedObj = JSON.parse(raw);
+        } catch (e) {
+            // Raw text might be OK if it's just markdown
+        }
+
+        // 2. Check if it's the full raw Gemini response structure
+        if (parsedObj && parsedObj.candidates && parsedObj.candidates[0].content) {
+            raw = parsedObj.candidates[0].content.parts[0].text;
+        }
+
+        // 3. Extract JSON from Markdown (e.g. ```json ... ```)
+        const jsonMatch = raw.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            json = JSON.parse(jsonMatch[0]);
+        } else {
+            // Fallback: try using the parsed object directly if it wasn't a raw response
+            json = parsedObj || JSON.parse(raw);
+        }
+
+        // Render Results
+        console.log("Simulating with:", json);
+        renderResult('train', json.train);
+        renderResult('mrt', json.mrt);
+        renderResult('bus', json.bus);
+        renderResult('bike', json.bike);
+
+        // Render Itinerary
+        renderItineraries(json.itineraries);
+
+        closeModal('debugModal');
+        alert("✅ 模擬渲染完成");
+    } catch (e) {
+        alert("❌ JSON 解析錯誤: " + e.message);
+        console.error(e);
+    }
+}
+
 // --- GPS ---
 function getGPS() {
     return new Promise((resolve) => {
@@ -730,16 +776,47 @@ function renderItineraries(list) {
             // 3. Coordinates: Name (lat, lng) -> Link
 
             let html = (i.details || '')
-                // Line breaks
-                .replace(/(\d+\.)/g, '<br>$1')
+                // Line breaks: Match "digits + dot + space" to avoid breaking coordinates (e.g. 25.04)
+                .replace(/(\d+\.\s)/g, '<br>$1')
                 // Bold text
                 .replace(/\*\*(.*?)\*\*/g, '<span style="color:var(--accent-color); font-weight:bold;">$1</span>')
                 // Coordinates Link: Name (lat, lng)
-                // Use a non-greedy logic for Name ensuring it doesn't eat previous text accidentally, 
-                // but Name usually precedes (lat, lng). 
-                // Pattern:  "StationName (25.123, 121.123)"
-                .replace(/([\u4e00-\u9fa5a-zA-Z0-9\s]+)\s*\(\s*(\d+\.\d+)\s*,\s*(\d+\.\d+)\s*\)/g, (match, name, lat, lng) => {
-                    return getMapLinkHtml(name.trim(), lat, lng, match);
+                // Logic: Extract Name, Check for Prepositions, Return Prefix + Link(Name)
+                // This hides the raw coordinates from display.
+                // Coordinates Link: Name (lat, lng)
+                // Use broad match but avoid eating previous HTML tags (like </span>)
+                // Match anything that isn't punctuation or HTML tags basically.
+                .replace(/([^\:：，,。;；<>\n]+)\s*\(\s*(\d+\.\d+)\s*,\s*(\d+\.\d+)\s*\)/g, (match, text, lat, lng) => {
+                    let cleanText = text.trim();
+                    let preText = "";
+                    let prefix = "";
+
+                    // Cleanup leading punctuation often caught by broad match (e.g. ": ", ", ")
+                    cleanText = cleanText.replace(/^[:：,，\.\s]+/, '');
+
+                    // Common prepositions to split out of the link
+                    // Use LAST occurrence to handle cases like "Walk from A to B" where match captures "from A to B"
+                    const prepositions = ['從', '至', '往', '到', '在'];
+                    let lastPrepIndex = -1;
+                    let matchedPrep = "";
+
+                    for (const p of prepositions) {
+                        const idx = cleanText.lastIndexOf(p);
+                        if (idx > lastPrepIndex) {
+                            lastPrepIndex = idx;
+                            matchedPrep = p;
+                        }
+                    }
+
+                    if (lastPrepIndex !== -1) {
+                        preText = cleanText.substring(0, lastPrepIndex);
+                        prefix = matchedPrep;
+                        cleanText = cleanText.substring(lastPrepIndex + matchedPrep.length).trim();
+                    }
+
+                    // Return: PreText + Prefix + Link(CleanName)
+                    // Wrap CleanName in <b> for bold display as requested
+                    return `${preText}${prefix}${getMapLinkHtml(cleanText, lat, lng, `<b>${cleanText}</b>`)}`;
                 });
 
             const formattedDetails = html;

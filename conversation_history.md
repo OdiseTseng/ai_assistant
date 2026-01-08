@@ -14,6 +14,55 @@
 **關鍵行動：**
 - **修改 api_service.js**：將所有 `gemini-2.5-flash` 替換為 `gemini-2.0-flash`。
 
+## 優化行程連結格式
+**日期：** 2026-01-08
+**ID：** `refine_itinerary_links`
+
+**目標：**
+修正行程細節中的連結顯示方式，隱藏原始座標並分離連接詞（如「從」、「至」）。
+
+**關鍵行動：**
+- **修改 script.js**：更新 `renderItineraries` 的正則表達式邏輯：
+    - 擴大正則表達式為 `([^\(\<\>]+)`，以涵蓋更多地名格式，同時排除 HTML 標籤。
+    - 增加程式邏輯，自動清除地名前的標點符號 (如 `:`) 與空白。
+    - **加粗顯示**：將轉換後的連結文字以 `<b>` 標籤包裹，使其更顯眼。
+
+## 作 Debug 模擬渲染功能
+
+## 作 Debug 模擬渲染功能
+
+## 作 Debug 模擬渲染功能
+
+## 增強 Debug 模擬渲染邏輯
+**日期：** 2026-01-08
+**ID：** `enhance_debug_simulation`
+
+**目標：**
+修正「模擬渲染」功能無法處理原始 Gemini API 回應格式（包含 `candidates` 物件）的問題。
+
+**關鍵行動：**
+- **修改 script.js**：更新 `simulateRendering` 函數，加入邏輯判斷：
+    - 若輸入為原始 API 回應結構，自動提取 `candidates[0].content.parts[0].text`。
+    - 若文字包含 Markdown 程式碼區塊 (```json ... ```)，自動提取內部 JSON。
+
+## 實作 Debug 模擬渲染功能
+
+## 實作 Debug 模擬渲染功能
+**日期：** 2026-01-08
+**ID：** `implement_debug_simulation`
+
+**目標：**
+新增「模擬渲染」功能，允許使用者在 Debug Console 中輸入或修改 JSON 回應，並直接觸發前端渲染流程，以利測試與除錯。
+
+**關鍵行動：**
+- **修改 index.html**：
+    - 將 Debug Response 區域改為可編輯 (移除 `readonly`)。
+    - 新增「模擬渲染 (Simulate Rendering)」按鈕。
+- **修改 script.js**：
+    - 實作 `simulateRendering()` 函數，解析輸入的 JSON 並依序呼叫 `renderResult` 與 `renderItineraries`。
+
+## 格式化行程細節顯示
+
 ## 格式化行程細節顯示
 **日期：** 2026-01-08
 **ID：** `format_itinerary_details`

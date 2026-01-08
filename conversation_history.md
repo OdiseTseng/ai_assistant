@@ -39,6 +39,20 @@
     - `user.name`: "Odise"
     - `user.email`: "odise9411272@gmail.com"
 
+## 優化儀表板版面配置
+**日期：** 2026-01-08
+**ID：** `refine_dashboard_layout`
+
+**目標：**
+修正儀表板卡片高度不一致問題，並強調「搭乘順序」顯示區域。
+
+**關鍵行動：**
+- **固定樣式 (style.css)**：
+    - 四大區塊 (`.card`) 設定最小高度 `min-height: 350px`，即使無內容也保持版面整齊。
+    - 調整 Flex 佈局：站點列表 (`.station-list`) 不再強制佔用空間，改由下方結果區 (`.result-box`) 自動填滿剩餘高度 (`flex-grow: 1`)，使其達到「最大化」效果。
+- **邏輯調整 (script.js)**：
+    - 修改 `renderResult`，強制顯示「搭乘順序」標題。若無資料則在標題下方顯示「無建議」，保持介面結構一致。
+
 ## 修改 AI 模型為 2.0 Flash
 **日期：** 2026-01-08
 **ID：** `update_model_to_2_0_flash`

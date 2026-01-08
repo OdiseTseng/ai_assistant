@@ -678,15 +678,18 @@ function renderResult(type, list) {
     if (div) {
         div.innerHTML = '';
 
-        // Add Title "搭乘順序" only if there are results
-        if (list && list.length > 0) {
-            const title = document.createElement('h4');
-            title.innerText = "搭乘順序";
-            title.style.margin = "0 0 10px 0";
-            title.style.color = "var(--accent-color)";
-            div.appendChild(title);
-        } else {
-            div.innerHTML = '<span style="color:#666">無建議</span>';
+        // Always show Title "搭乘順序"
+        const title = document.createElement('h4');
+        title.innerText = "搭乘順序";
+        title.style.margin = "0 0 10px 0";
+        title.style.color = "var(--accent-color)";
+        div.appendChild(title);
+
+        if (!list || list.length === 0) {
+            const span = document.createElement('span');
+            span.style.color = "#666";
+            span.innerText = "無建議";
+            div.appendChild(span);
             return;
         }
 

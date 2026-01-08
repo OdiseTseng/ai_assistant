@@ -459,83 +459,7 @@ function renderGrid(items) {
 
 // ... lines omitted ...
 
-function renderResult(type, list) {
-    const div = document.getElementById(`${type}-result`);
-    if (div) {
-        div.innerHTML = '';
 
-        // Add Title "搭乘順序" only if there are results
-        if (list && list.length > 0) {
-            const title = document.createElement('h4');
-            title.innerText = "搭乘順序";
-            title.style.margin = "0 0 10px 0";
-            title.style.color = "var(--accent-color)";
-            div.appendChild(title);
-        } else {
-            div.innerHTML = '<span style="color:#666">無建議</span>';
-            return;
-        }
-
-        list.forEach(t => {
-            const d = document.createElement('div');
-            d.style.padding = "10px";
-            d.style.marginBottom = "10px";
-            d.style.borderBottom = "1px solid #333";
-            d.style.background = "rgba(255,255,255,0.02)";
-            d.style.borderRadius = "5px";
-
-            // Check if it's a Flow Object (Start -> End)
-            if (typeof t === 'object' && t.from && t.to) {
-                const lineInfo = t.line ? ` - ${t.line}` : '';
-
-                // Simple names
-                const nameFrom = (t.from || '').trim();
-                const nameTo = (t.to || '').trim();
-
-                // Special Format for Bus: "Station - Board [Routes]"
-                if (type === 'bus') {
-                    d.innerHTML = `
-                        <div style="font-weight:bold">${getMapLinkHtml(nameFrom, t.lat_from, t.lng_from)} <span style="font-weight:normal; color:#aaa"> -搭乘 ${t.line || '公車'}</span></div>
-                        <div style="text-align:center; color:var(--accent-color); margin: 5px 0;">↓</div>
-                        <div style="font-weight:bold">${getMapLinkHtml(nameTo, t.lat_to, t.lng_to)} <span style="font-weight:normal; color:#aaa"> -下車</span></div>
-                    `;
-                } else if (type === 'bike') {
-                    // Bike Format: "Station - Rent" ... "Station - Return"
-                    const fromInfo = getBikeInfoHtml(nameFrom);
-                    const toInfo = getBikeInfoHtml(nameTo);
-
-                    d.innerHTML = `
-                            <div style="font-weight:bold">${getMapLinkHtml(nameFrom, t.lat_from, t.lng_from)} ${fromInfo} <span style="font-weight:normal; color:#aaa"> -租車</span></div>
-                            <div style="text-align:center; color:var(--accent-color); margin: 5px 0;">↓</div>
-                            <div style="font-weight:bold">${getMapLinkHtml(nameTo, t.lat_to, t.lng_to)} ${toInfo} <span style="font-weight:normal; color:#aaa"> -還車</span></div>
-                        `;
-                } else {
-                    // Default Format for Train/MRT: "Station - Board" ... "Station - Get Off"
-                    d.innerHTML = `
-                            <div style="font-weight:bold">${getMapLinkHtml(nameFrom, t.lat_from, t.lng_from)} <span style="font-weight:normal; color:#aaa"> -上車${lineInfo}</span></div>
-                            <div style="text-align:center; color:var(--accent-color); margin: 5px 0;">↓</div>
-                            <div style="font-weight:bold">${getMapLinkHtml(nameTo, t.lat_to, t.lng_to)} <span style="font-weight:normal; color:#aaa"> -下車</span></div>
-                        `;
-                }
-            } else {
-                // Fallback for old simple list or simple objects
-                let name = t;
-                let lat = null; let lng = null;
-                if (typeof t === 'object' && t !== null) {
-                    name = t.name || t.station || t.stop || t.title || JSON.stringify(t);
-                    lat = t.lat || null;
-                    lng = t.lng || null;
-                }
-                const nameStr = (typeof name === 'string' ? name : JSON.stringify(name)).trim();
-
-                d.innerHTML = `
-                        ${getMapLinkHtml(nameStr, lat, lng)}
-                    `;
-            }
-            div.appendChild(d);
-        });
-    }
-}
 
 function toggleStation(item, element = null) {
     // Check Selection Mode
@@ -735,9 +659,9 @@ function renderResult(type, list) {
                 // Special Format for Bus: "Station - Board [Routes]"
                 if (type === 'bus') {
                     d.innerHTML = `
-                        <div style="font-weight:bold">${getMapLinkHtml(t.from, t.lat_from, t.lng_from)} ${t.from} <span style="font-weight:normal; color:#aaa"> -搭乘 ${t.line || '公車'}</span></div>
+                        <div style="font-weight:bold">${getMapLinkHtml(t.from, t.lat_from, t.lng_from)} <span style="font-weight:normal; color:#aaa"> -搭乘 ${t.line || '公車'}</span></div>
                         <div style="text-align:center; color:var(--accent-color); margin: 5px 0;">↓</div>
-                        <div style="font-weight:bold">${getMapLinkHtml(t.to, t.lat_to, t.lng_to)} ${t.to} <span style="font-weight:normal; color:#aaa"> -下車</span></div>
+                        <div style="font-weight:bold">${getMapLinkHtml(t.to, t.lat_to, t.lng_to)} <span style="font-weight:normal; color:#aaa"> -下車</span></div>
                     `;
                 } else if (type === 'bike') {
                     // Bike Format: "Station - Rent" ... "Station - Return"
@@ -745,16 +669,16 @@ function renderResult(type, list) {
                     const toInfo = getBikeInfoHtml(t.to);
 
                     d.innerHTML = `
-                        <div style="font-weight:bold">${getMapLinkHtml(t.from, t.lat_from, t.lng_from)} ${t.from} ${fromInfo} <span style="font-weight:normal; color:#aaa"> -租車</span></div>
+                        <div style="font-weight:bold">${getMapLinkHtml(t.from, t.lat_from, t.lng_from)} ${fromInfo} <span style="font-weight:normal; color:#aaa"> -租車</span></div>
                         <div style="text-align:center; color:var(--accent-color); margin: 5px 0;">↓</div>
-                        <div style="font-weight:bold">${getMapLinkHtml(t.to, t.lat_to, t.lng_to)} ${t.to} ${toInfo} <span style="font-weight:normal; color:#aaa"> -還車</span></div>
+                        <div style="font-weight:bold">${getMapLinkHtml(t.to, t.lat_to, t.lng_to)} ${toInfo} <span style="font-weight:normal; color:#aaa"> -還車</span></div>
                     `;
                 } else {
                     // Default Format for Train/MRT: "Station - Board" ... "Station - Get Off"
                     d.innerHTML = `
-                        <div style="font-weight:bold">${getMapLinkHtml(t.from, t.lat_from, t.lng_from)} ${t.from} <span style="font-weight:normal; color:#aaa"> -上車${lineInfo}</span></div>
+                        <div style="font-weight:bold">${getMapLinkHtml(t.from, t.lat_from, t.lng_from)} <span style="font-weight:normal; color:#aaa"> -上車${lineInfo}</span></div>
                         <div style="text-align:center; color:var(--accent-color); margin: 5px 0;">↓</div>
-                        <div style="font-weight:bold">${getMapLinkHtml(t.to, t.lat_to, t.lng_to)} ${t.to} <span style="font-weight:normal; color:#aaa"> -下車</span></div>
+                        <div style="font-weight:bold">${getMapLinkHtml(t.to, t.lat_to, t.lng_to)} <span style="font-weight:normal; color:#aaa"> -下車</span></div>
                     `;
                 }
             } else {
@@ -768,7 +692,6 @@ function renderResult(type, list) {
                 }
 
                 d.innerHTML = `
-                    ${name} 
                     ${getMapLinkHtml(typeof name === 'string' ? name : JSON.stringify(name), lat, lng)}
                 `;
             }
@@ -801,7 +724,25 @@ function renderItineraries(list) {
             // I'll stick to the requested "Four major blocks" (Result lists) and "Stations" (Grid/Added list).
 
             // Format details: Add line breaks before numbers (e.g. "1. ", "2. ")
-            const formattedDetails = (i.details || '').replace(/(\d+\.)/g, '<br>$1');
+            // Format details: 
+            // 1. Line breaks before numbers (e.g. "1. ", "2. ")
+            // 2. Bold text: **text** -> <span style="...">text</span>
+            // 3. Coordinates: Name (lat, lng) -> Link
+
+            let html = (i.details || '')
+                // Line breaks
+                .replace(/(\d+\.)/g, '<br>$1')
+                // Bold text
+                .replace(/\*\*(.*?)\*\*/g, '<span style="color:var(--accent-color); font-weight:bold;">$1</span>')
+                // Coordinates Link: Name (lat, lng)
+                // Use a non-greedy logic for Name ensuring it doesn't eat previous text accidentally, 
+                // but Name usually precedes (lat, lng). 
+                // Pattern:  "StationName (25.123, 121.123)"
+                .replace(/([\u4e00-\u9fa5a-zA-Z0-9\s]+)\s*\(\s*(\d+\.\d+)\s*,\s*(\d+\.\d+)\s*\)/g, (match, name, lat, lng) => {
+                    return getMapLinkHtml(name.trim(), lat, lng, match);
+                });
+
+            const formattedDetails = html;
 
             item.innerHTML = `
                 <div style="color:var(--accent-color); font-weight:bold; margin-bottom:5px;">${i.title || '方案'} <span style="float:right; font-size:0.9em; color:#fff;">⏱ ${i.time || '?'}</span></div>

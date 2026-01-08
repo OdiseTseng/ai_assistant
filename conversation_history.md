@@ -1,8 +1,79 @@
 # AI 助手對話記錄
 
-*產生日期：2026-01-07*
+*產生日期：2026-01-08*
 
 本文件作為我們對話的永久記錄，讓您可以透過同步此儲存庫，在不同機器（Windows/Mac）上存取上下文和歷史記錄。
+
+## 修改 AI 模型為 2.0 Flash
+**日期：** 2026-01-08
+**ID：** `update_model_to_2_0_flash`
+
+**目標：**
+將 Gemini API 模型版本由 `gemini-2.5-flash` 修改為 `gemini-2.0-flash`。
+
+**關鍵行動：**
+- **修改 api_service.js**：將所有 `gemini-2.5-flash` 替換為 `gemini-2.0-flash`。
+
+## 格式化行程細節顯示
+**日期：** 2026-01-08
+**ID：** `format_itinerary_details`
+
+**目標：**
+優化 AI 產生之行程細節的顯示方式，將粗體標示轉換為醒目的 HTML 樣式，並將包含座標的站點名稱轉換為可點擊的地圖連結。
+
+**關鍵行動：**
+- **修改 script.js**：更新 `renderItineraries` 函數，使用正則表達式 (Regex) 替換文本：
+    - `**text**` -> 轉換為高亮粗體樣式。
+    - `Name (lat, lng)` -> 轉換為 Google Maps 連結 (`getMapLinkHtml`)。
+
+## 還原 AI 模型為 2.5 Flash
+
+## 還原 AI 模型為 2.5 Flash
+**日期：** 2026-01-08
+**ID：** `revert_model_to_2_5_flash`
+
+**目標：**
+將 Gemini API 模型版本由 `gemini-2.5-flash-lite` 修改回 `gemini-2.5-flash`。
+
+**關鍵行動：**
+- **修改 api_service.js**：將所有 `gemini-2.5-flash-lite` 替換為 `gemini-2.5-flash`。
+
+## 修正 Station Tag 高度問題
+
+## 修正 Station Tag 高度問題
+**日期：** 2026-01-08
+**ID：** `fix_station_tag_height`
+
+**目標：**
+修正儀表板中站點標籤 (`.station-tag`) 在 Flex 容器中被拉伸至最大高度的問題，改為依內容高度自適應。
+
+**關鍵行動：**
+- **修改 style.css**：在 `.station-tag` 中加入 `height: fit-content;`。
+
+## 修正站點名稱重複顯示問題
+
+## 修正站點名稱重複顯示問題
+**日期：** 2026-01-08
+**ID：** `fix_duplicate_station_names_render_result`
+
+**目標：**
+修正搜尋結果列表中，站點名稱出現兩次（連結+純文字）的問題，並清理重複定義的程式碼。
+
+**關鍵行動：**
+- **修改 script.js**：移除 `renderResult` 中冗餘的 `${t.from}` / `${t.to}` / `${name}` 變數，因 `getMapLinkHtml` 已包含名稱。
+- **清理程式碼**：移除 `script.js` 中重複定義的舊版 `renderResult` 函數。
+
+## 修改 AI 模型為 2.5 Flash Lite
+
+## 修改 AI 模型為 2.5 Flash Lite
+**日期：** 2026-01-08
+**ID：** `update_model_to_2_5_flash_lite`
+
+**目標：**
+將 Gemini API 模型版本由 `gemini-2.5-flash` 修改為 `gemini-2.5-flash-lite`。
+
+**關鍵行動：**
+- **修改 api_service.js**：將所有 `gemini-2.5-flash` 替換為 `gemini-2.5-flash-lite`。
 
 ## 修正 API 版本回 v1beta
 **日期：** 2026-01-07

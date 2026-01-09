@@ -351,6 +351,9 @@ async function askGeminiForStations(query, type = 'bike') {
             .sort((a, b) => b.score - a.score);
 
         if (matches.length > 0) {
+            // Debug Capture for Official Search (Local)
+            if (window.lastDebugData) window.lastDebugData.response = matches.slice(0, 20); // Capture top results for debug
+
             if (grid) grid.innerHTML = '';
             matches.slice(0, 10).forEach(m => {
                 const div = document.createElement('div');

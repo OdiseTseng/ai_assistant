@@ -24,6 +24,11 @@
 - **環境與修復**：
     - 解決 IDE Preview Extension 偵測問題，確認靜態檔可直接瀏覽。
     - 修復因編輯錯誤導致的 `script.js` 嚴重語法錯誤 (清理殘留程式碼)。
+- **後續修正與優化**：
+    - **分頁查詢隔離**：修正不同分頁按鈕 (如回老家) 誤觸發主頁面查詢狀態的問題，確保各分頁 Loading 狀態與結果顯示獨立運作 (`renderItineraries` 支援動態 Target)。
+    - **回老家邏輯修復**：在 `api_service.js` 的 `createCommutePrompt` 中補上 `old_home` 模式的專屬判斷，解決無法讀取「老家」設定的問題。
+    - **想去哪? (Custom) 優化**：更新 `handleCustomRoute`，將已儲存的常用站點加入 Prompt 上下文，讓 AI 能規劃從常用站點出發的路線。
+    - **Debug 模擬渲染修復**：修正模擬渲染功能總是將結果顯示在第一頁的問題，現在會依據當前分頁 (`currentDashboardTab`) 自動導向正確的結果區塊。
 
 ## 調查 API 503 錯誤
 **日期：** 2026-01-08

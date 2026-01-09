@@ -131,8 +131,37 @@ async function createCommutePrompt(modeOverride = null) {
 
         prompt += `\n請提供附近的 YouBike 站點與騎乘建議。`;
 
+    } else if (mode === 'old_home') {
+        // --- Special Mode: Back to Old Home ---
+        prompt += ` 我準備回老家。`;
+        const s = state.settings.holiday || {}; // Fallback if missing
+        const dest = s.oldHomeLastMile || { name: "未設定", trans: [] };
+        const trans = s.oldHomeTrans || s.homeTrans || []; // Fallback to home trans
+
+        prompt += `\n回老家設定: 目的地 ${dest.name} (${dest.trans.join('+')})`;
+        prompt += `\n啟用交通工具: ${trans.join(', ')}`;
+
+        prompt += `\n\n已儲存的常用站點：`;
+        if (state.train.length) prompt += `\n火車: ${fmtStations(state.train)}`;
+        if (state.mrt.length) prompt += `\n捷運: ${fmtStations(state.mrt)}`;
+        if (state.bus.length) prompt += `\n公車: ${fmtStations(state.bus)}`;
+        if (state.bike.length) prompt += `\nYouBike: ${fmtStations(state.bike)}`;
+
+    } else if (mode === 'custom') {
+        // We might handle custom route logic outside in handleCustomRoute, 
+        // but if it calls this, we should support it?
+        // Actually handleCustomRoute builds its own prompt usually?
+        // Let's check script.js handleCustomRoute... IT DOES NOT.
+        // Wait, handleCustomRoute logic in script.js (I haven't seen it fully).
+        // If handleSend('custom') is called, it might use this.
+        // But usually 'Where to?' has an input box.
     } else if (isHoliday) {
         prompt += ` 今日是假日。`;
+        // ... (Keep existing Holiday logic but maybe refine it?)
+        // If mode is NOT old_home (e.g. just opening the app on a holiday),
+        // it defaults to "Home" logic usually unless specified?
+        // The existing logic prints "Holiday settings" generally.
+        // Let's keep it for general holiday context.
         const holidaySettings = state.settings.holiday || {};
         const oldHome = holidaySettings.oldHomeLastMile;
         const home = holidaySettings.homeLastMile;
@@ -149,7 +178,7 @@ async function createCommutePrompt(modeOverride = null) {
         if (state.bike.length) prompt += `\nYouBike: ${fmtStations(state.bike)}`;
 
     } else {
-        // Work or Home
+        // Work or Home (Default)
         prompt += ` 今日是平日。`;
 
         let targetSettings = {};
@@ -161,7 +190,8 @@ async function createCommutePrompt(modeOverride = null) {
         } else {
             prompt += ` 我準備下班/回家。`;
             const s = state.settings;
-            prompt += `\n下班設定: 時間 ${s.homeTime}, 目的地 ${s.homeLastMile.name} (${s.homeLastMile.trans.join('+')})`;
+            // Default to Home logic
+            prompt += `\n下班/回家設定: 時間 ${s.homeTime}, 目的地 ${s.homeLastMile.name} (${s.homeLastMile.trans.join('+')})`;
             prompt += `\n啟用交通工具: ${s.homeTrans.join(', ')}`;
         }
 
@@ -189,12 +219,14 @@ async function createCommutePrompt(modeOverride = null) {
     return prompt;
 }
 
-async function callGeminiAPI(prompt) {
+async function callGeminiAPI(prompt, btnId = 'sendBtn') {
     const key = state.settings.apiKey;
     if (!key) return alert("請先設定 API Key");
 
-    const btn = document.getElementById('sendBtn');
+    const btn = document.getElementById(btnId);
+    let originalText = "";
     if (btn) {
+        originalText = btn.innerText;
         btn.disabled = true;
         btn.innerText = "🤖 思考中...";
     }
@@ -249,7 +281,7 @@ async function callGeminiAPI(prompt) {
     } finally {
         if (btn) {
             btn.disabled = false;
-            btn.innerText = "📍 根據設定取得 GPS 並查詢";
+            btn.innerText = originalText || "📍 查詢"; // Fallback
         }
     }
 }

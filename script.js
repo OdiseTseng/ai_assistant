@@ -427,7 +427,16 @@ function simulateRendering() {
         }
 
         // Render Results
+        // Render Results
         console.log("Simulating with:", json);
+
+        // Fix for Tab-Context Simulation
+        if (typeof currentDashboardTab !== 'undefined') {
+            if (currentDashboardTab === 'oldHome') window.currentItineraryTarget = 'itinerary-result-oldHome';
+            else if (currentDashboardTab === 'custom') window.currentItineraryTarget = 'itinerary-result-custom';
+            else window.currentItineraryTarget = 'itinerary-result';
+        }
+
         renderResult('train', json.train);
         renderResult('mrt', json.mrt);
         renderResult('bus', json.bus);
@@ -894,7 +903,8 @@ function renderResult(type, list) {
 }
 
 function renderItineraries(list) {
-    const div = document.getElementById('itinerary-result');
+    const targetId = window.currentItineraryTarget || 'itinerary-result';
+    const div = document.getElementById(targetId);
     if (div) {
         div.innerHTML = '';
         if (!list || list.length === 0) {
@@ -1070,6 +1080,18 @@ function handleCustomRoute() {
 
                 let prompt = `現在時間 ${timeStr}。我的位置在 ${currentPos}。`;
                 prompt += `\n我想前往：${json.formatted_name} (${json.lat}, ${json.lng})`;
+
+                // Helper to format stations (Duplicated from api_service but needed here, or accessed globally?)
+                // Since fmtStations is inside createCommutePrompt, we recreate it or make it global.
+                // Simple version here:
+                const fmt = (list) => list.map(s => `${s.name || s}${s.lat ? `(${s.lat},${s.lng})` : ''}`).join('、');
+
+                prompt += `\n\n已儲存的常用站點：`;
+                if (state.train.length) prompt += `\n火車: ${fmt(state.train)}`;
+                if (state.mrt.length) prompt += `\n捷運: ${fmt(state.mrt)}`;
+                if (state.bus.length) prompt += `\n公車: ${fmt(state.bus)}`;
+                if (state.bike.length) prompt += `\nYouBike: ${fmt(state.bike)}`;
+
                 prompt += `\n請提供最佳交通建議 (包含火車/捷運/公車/Ubike)。`;
                 prompt += `\n回傳 JSON 格式同上 (train, mrt, bus, bike, itineraries...)`;
 

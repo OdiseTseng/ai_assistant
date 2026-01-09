@@ -138,6 +138,58 @@
             gap: 20px;
         }
 
+        /* Dashboard Tabs */
+        .dashboard-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 10px;
+        }
+
+        .dashboard-tab-btn {
+            background: transparent;
+            border: none;
+            color: #64748b;
+            padding: 10px 20px;
+            font-size: 1rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .dashboard-tab-btn:hover {
+            color: var(--text-color);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .dashboard-tab-btn.active {
+            color: var(--accent-color);
+            border-bottom-color: var(--accent-color);
+            font-weight: bold;
+        }
+
+        .dashboard-tab-content {
+            display: none;
+        }
+
+        .dashboard-tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         /* Card Styles */
         .card {
             background: var(--card-bg);
@@ -148,12 +200,14 @@
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             display: flex;
             flex-direction: column;
-            min-height: 350px; /* Enforce minimum height */
+            min-height: 350px;
+            /* Enforce minimum height */
         }
 
         .full-width {
             grid-column: 1 / -1;
-            min-height: auto; /* Allow full-width card to be flexible if needed, or keep same */
+            min-height: auto;
+            /* Allow full-width card to be flexible if needed, or keep same */
         }
 
         h2 {
@@ -199,7 +253,8 @@
             flex-grow: 1;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
             padding-top: 10px;
-            min-height: 100px; /* Ensure visible area */
+            min-height: 100px;
+            /* Ensure visible area */
         }
 
         /* Inputs & Buttons */

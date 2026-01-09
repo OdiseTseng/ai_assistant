@@ -254,8 +254,27 @@ async function callGeminiAPI(prompt) {
     }
 }
 
+// --- STATION SEARCH (AI) ---
 async function askGeminiForStations(query, type = 'bike') {
     const grid = document.getElementById('modalGrid');
+
+    // Debug Hook
+    if (window.lastDebugData) { // Reset queryType
+        window.lastDebugData.queryType = (type === 'bus' || type === 'bike') ? 'search' : 'gemini'; // search for manual calls
+        // But wait, bus/bike AI search IS a gemini call, just a different purpose.
+        // User asked: "If non-gemini-flash search" -> i.e. local filter?
+        // No, User said: "If non-gemini-2.5-flash search (assumption: meaning official API or keyword?)".
+        // Actually user said: "if non-gemini-2.5-flash search" -> "Sent Query".
+        // Let's assume ANY search that isn't the main commute prompt.
+        // For now, let's just log the QUERY as the prompt for these searches.
+    }
+
+    // Capture Query for Debug
+    if (typeof window.lastDebugData !== 'undefined') {
+        window.lastDebugData.queryType = 'search'; // Indicate this is a search query
+        window.lastDebugData.prompt = `Search Query: ${query}\nType: ${type}`;
+        window.lastDebugData.response = "Processing...";
+    }
 
     // --- CASE 1: Bus Search (Direct AI) ---
     if (type === 'bus') {
@@ -283,6 +302,10 @@ async function askGeminiForStations(query, type = 'bike') {
                 body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
             });
             const data = await res.json();
+
+            // Debug Capture
+            if (window.lastDebugData) window.lastDebugData.response = data;
+
             const text = data.candidates[0].content.parts[0].text;
             const busJsonMatch = text.match(/\{[\s\S]*\}/);
             const json = busJsonMatch ? JSON.parse(busJsonMatch[0]) : { valid: false, error: "無法解析 AI 回應" };
@@ -383,6 +406,10 @@ async function askGeminiForStations(query, type = 'bike') {
             body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
         });
         const data = await res.json();
+
+        // Debug Capture
+        if (window.lastDebugData) window.lastDebugData.response = data;
+
         const text = data.candidates[0].content.parts[0].text;
         const bikeJsonMatch = text.match(/\{[\s\S]*\}/);
         const json = bikeJsonMatch ? JSON.parse(bikeJsonMatch[0]) : { valid: false, error: "無法解析 AI 回應" };

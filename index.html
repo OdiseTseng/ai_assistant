@@ -48,331 +48,467 @@
                 <button onclick="openDebugModal()" style="padding:4px 10px; font-size:12px;">Debug Info</button>
             </div>
 
-            <div class="dashboard-grid">
-                <!-- Section 1: Itinerary & Query (Moved from Section 5) -->
-                <div class="card full-width" style="border-color: var(--accent-color);">
-                    <h2>最佳轉乘方案 (未來2小時)</h2>
-
-                    <!-- Controls (Moved from old Section 1) -->
-                    <div
-                        style="display:flex; flex-direction:column; gap:10px; margin-bottom:15px; border-bottom:1px solid #333; padding-bottom:15px;">
-
-                        <button id="sendBtn" onclick="handleSend()" class="btn-primary" disabled>
-                            📍 根據設定取得 GPS 並查詢
-                        </button>
-                    </div>
-
-                    <div id="itinerary-result" class="result-box" style="padding:15px; min-height:100px;">
-                        <span style="color:#666">等待查詢...</span>
-                    </div>
-                </div>
-
-
-                <!-- Section Title: Favorite Stations -->
-                <div style="grid-column: 1 / -1; margin-top: 10px;">
-                    <h2>喜好站點</h2>
-                </div>
-
-                <!-- Section 2: Train -->
-                <div class="card">
-                    <h2>🚄 火車 <button class="btn-add" onclick="openStationModal('train')">+</button></h2>
-                    <div id="train-list" class="station-list"></div>
-                    <div id="train-result" class="result-box"></div>
-                </div>
-
-                <!-- Section 3: MRT (New) -->
-                <div class="card">
-                    <h2>捷運 <button class="btn-add" onclick="openStationModal('mrt')">+</button></h2>
-                    <div id="mrt-list" class="station-list"></div>
-                    <div id="mrt-result" class="result-box"></div>
-                </div>
-
-                <!-- Section 3: Bus -->
-                <div class="card">
-                    <h2>🚌 公車 <button class="btn-add" onclick="openStationModal('bus')">+</button></h2>
-                    <div id="bus-list" class="station-list"></div>
-                    <div id="bus-result" class="result-box"></div>
-                </div>
-
-                <!-- Section 4: Bike -->
-                <div class="card">
-                    <h2>🚲 YouBike <button class="btn-add" onclick="openStationModal('bike')">+</button></h2>
-                    <div id="bike-list" class="station-list"></div>
-                    <div id="bike-result" class="result-box"></div>
-                </div>
-
+            <!-- Dashboard Tabs -->
+            <div class="dashboard-tabs">
+                <button class="dashboard-tab-btn active" onclick="switchDashboardTab('daily')">🏠 日常通勤</button>
+                <button class="dashboard-tab-btn" onclick="switchDashboardTab('oldHome')">🏡 回老家</button>
+                <button class="dashboard-tab-btn" onclick="switchDashboardTab('custom')">🗺️ 想去哪?</button>
             </div>
-        </div>
-    </div>
 
-    <!-- STATION MODAL (Add Stations) -->
-    <div id="stationModal" class="modal-overlay">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="modalTitle" style="margin:0;">新增站點</h3>
-                <div style="flex-grow: 1; display: flex; gap: 5px; position: relative; margin: 0 15px;">
-                    <input type="text" id="modalSearch" oninput="filterStations(this.value)"
-                        style="margin: 0; padding:6px;" placeholder="搜尋站點...">
-                    <button id="clearSearchBtn" onclick="clearSearch()"
-                        style="display:none; position:absolute; right:5px; top:5px; padding:2px 5px;">X</button>
-                </div>
-                <button onclick="closeModal('stationModal')"
-                    style="border:none; font-size:1.5rem; background:transparent;">×</button>
-            </div>
-            <div class="modal-body">
-                <div class="modal-sidebar" id="modalSidebar"></div>
-                <div class="modal-main">
-                    <div id="loadingIndicator" style="display:none; text-align:center;">AI 搜尋中...</div>
-                    <div id="modalGrid" class="station-grid"></div>
-                    <div id="modalHelpText" style="margin-top:auto; color:#64748b; font-size:0.8em;"></div>
-                </div>
-            </div>
-        </div>
-    </div>
+            <!-- TAB 1: DAILY -->
+            <div id="tab-daily" class="dashboard-tab-content active">
+                <div class="dashboard-grid">
+                    <!-- Section 1: Itinerary & Query (Moved from Section 5) -->
+                    <div class="card full-width" style="border-color: var(--accent-color);">
+                        <h2>最佳轉乘方案 (未來2小時)</h2>
 
-    <!-- SETTINGS MODAL -->
-    <div id="settingsModal" class="modal-overlay">
-        <div class="modal-content sm">
-            <div class="modal-header">
-                <h3>⚙️ 個人化設定</h3>
-                <div style="display:flex; gap:10px;">
-                    <button onclick="openHelpModal()" style="padding:4px 10px; font-size:0.9em;">❓ 說明</button>
-                    <button onclick="closeModal('settingsModal')">×</button>
-                </div>
-            </div>
-            <div class="settings-form">
-                <!-- Tabs -->
-                <div class="tabs" style="display:flex; gap:10px; margin-bottom:15px; border-bottom:1px solid #444;">
-                    <button id="tabBtnWeekday" class="tab-btn active" onclick="switchSettingsTab('weekday')"
-                        style="padding:8px 15px; background:none; border:none; color:var(--text-color); border-bottom:2px solid var(--accent-color);">🏢
-                        平日設定</button>
-                    <button id="tabBtnHoliday" class="tab-btn" onclick="switchSettingsTab('holiday')"
-                        style="padding:8px 15px; background:none; border:none; color:#888;">🏖️ 假日設定</button>
-                </div>
+                        <!-- Controls (Moved from old Section 1) -->
+                        <div
+                            style="display:flex; flex-direction:column; gap:10px; margin-bottom:15px; border-bottom:1px solid #333; padding-bottom:15px;">
 
-                <!-- API Key (Common) -->
-                <div class="form-group">
-                    <label class="form-label">Google Gemini API Key</label>
-                    <input type="password" id="settingApiKey" placeholder="貼上 API Key">
-                </div>
-
-                <hr style="border:0; border-top:1px solid var(--card-border); margin:20px 0;">
-
-                <!-- Tab Content: Weekday -->
-                <div id="tabWeekday" class="tab-content">
-                    <!-- Work Settings -->
-                    <div class="form-group">
-                        <label class="form-label">🏢 上班設定</label>
-                        <span class="form-sub-label">上班時間</span>
-                        <input type="time" id="settingWorkTime">
-
-                        <span class="form-sub-label" style="margin-top:10px;">交通工具組合 (途中)</span>
-                        <div class="checkbox-group">
-                            <label class="checkbox-label"><input type="checkbox" name="workTrans" value="train">
-                                火車</label>
-                            <label class="checkbox-label"><input type="checkbox" name="workTrans" value="mrt">
-                                捷運</label>
-                            <label class="checkbox-label"><input type="checkbox" name="workTrans" value="bus">
-                                公車</label>
-                            <label class="checkbox-label"><input type="checkbox" name="workTrans" value="bike">
-                                YouBike</label>
+                            <button id="sendBtn" onclick="handleSend()" class="btn-primary" disabled>
+                                📍 根據設定取得 GPS 並查詢
+                            </button>
                         </div>
 
-                        <!-- Work Last Mile -->
-                        <div class="sub-box">
-                            <label class="form-label" style="font-size:0.95em;">🏁 最後一哩路 (抵達公司)</label>
+                        <div id="itinerary-result" class="result-box" style="padding:15px; min-height:100px;">
+                            <span style="color:#666">等待查詢...</span>
+                        </div>
+                    </div>
+
+
+                    <!-- Section Title: Favorite Stations -->
+                    <div style="grid-column: 1 / -1; margin-top: 10px;">
+                        <h2>喜好站點</h2>
+                    </div>
+
+                    <!-- Section 2: Train -->
+                    <div class="card">
+                        <h2>🚄 火車 <button class="btn-add" onclick="openStationModal('train')">+</button></h2>
+                        <div id="train-list" class="station-list"></div>
+                        <div id="train-result" class="result-box"></div>
+                    </div>
+
+                    <!-- Section 3: MRT (New) -->
+                    <div class="card">
+                        <h2>捷運 <button class="btn-add" onclick="openStationModal('mrt')">+</button></h2>
+                        <div id="mrt-list" class="station-list"></div>
+                        <div id="mrt-result" class="result-box"></div>
+                    </div>
+
+                    <!-- Section 3: Bus -->
+                    <div class="card">
+                        <h2>🚌 公車 <button class="btn-add" onclick="openStationModal('bus')">+</button></h2>
+                        <div id="bus-list" class="station-list"></div>
+                        <div id="bus-result" class="result-box"></div>
+                    </div>
+
+                    <!-- Section 4: Bike -->
+                    <div class="card">
+                        <h2>🚲 YouBike <button class="btn-add" onclick="openStationModal('bike')">+</button></h2>
+                        <div id="bike-list" class="station-list"></div>
+                        <div id="bike-result" class="result-box"></div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- TAB 2: OLD HOME -->
+            <div id="tab-oldHome" class="dashboard-tab-content">
+                <div class="dashboard-grid">
+                    <!-- Section 1: Itinerary & Query -->
+                    <div class="card full-width" style="border-color: #fbbf24;">
+                        <h2>回老家規劃 (未來2小時)</h2>
+
+                        <!-- Controls -->
+                        <div
+                            style="display:flex; flex-direction:column; gap:10px; margin-bottom:15px; border-bottom:1px solid #333; padding-bottom:15px;">
+                            <button id="sendBtnOldHome" onclick="handleSend('old_home')" class="btn-primary" disabled>
+                                📍 規劃回老家路線
+                            </button>
+                        </div>
+
+                        <div id="itinerary-result-oldHome" class="result-box" style="padding:15px; min-height:100px;">
+                            <span style="color:#666">等待查詢...</span>
+                        </div>
+                    </div>
+
+                    <!-- Section Title: Favorite Stations -->
+                    <div style="grid-column: 1 / -1; margin-top: 10px;">
+                        <h2>喜好站點</h2>
+                    </div>
+
+                    <!-- Section 2: Train -->
+                    <div class="card">
+                        <h2>🚄 火車 <button class="btn-add" onclick="openStationModal('train')">+</button></h2>
+                        <div id="train-list-2" class="station-list"></div>
+                        <div id="train-result-2" class="result-box"></div>
+                    </div>
+
+                    <!-- Section 3: MRT -->
+                    <div class="card">
+                        <h2>捷運 <button class="btn-add" onclick="openStationModal('mrt')">+</button></h2>
+                        <div id="mrt-list-2" class="station-list"></div>
+                        <div id="mrt-result-2" class="result-box"></div>
+                    </div>
+
+                    <!-- Section 3: Bus -->
+                    <div class="card">
+                        <h2>🚌 公車 <button class="btn-add" onclick="openStationModal('bus')">+</button></h2>
+                        <div id="bus-list-2" class="station-list"></div>
+                        <div id="bus-result-2" class="result-box"></div>
+                    </div>
+
+                    <!-- Section 4: Bike -->
+                    <div class="card">
+                        <h2>🚲 YouBike <button class="btn-add" onclick="openStationModal('bike')">+</button></h2>
+                        <div id="bike-list-2" class="station-list"></div>
+                        <div id="bike-result-2" class="result-box"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: CUSTOM -->
+            <div id="tab-custom" class="dashboard-tab-content">
+                <div class="dashboard-grid">
+                    <!-- Section 1: Itinerary & Query -->
+                    <div class="card full-width" style="border-color: #a855f7;">
+                        <h2>想去哪? (自訂導航)</h2>
+
+                        <!-- Controls -->
+                        <div
+                            style="display:flex; flex-direction:column; gap:10px; margin-bottom:15px; border-bottom:1px solid #333; padding-bottom:15px;">
+
+                            <label style="color:#aaa; font-size:0.9em;">請輸入目的地 (例如: 台北101、淡水老街)</label>
                             <div style="display:flex; gap:10px;">
-                                <input type="text" id="settingWorkStation" placeholder="點擊選擇站點..." readonly
-                                    onclick="openSourceSelectModal('work')" style="cursor:pointer; background:#2a2a2a;">
+                                <input type="text" id="customDestInput" placeholder="輸入地點 或 點選右側選擇..." style="flex:1;">
+                                <button onclick="openSourceSelectModal('custom')"
+                                    style="white-space:nowrap; width:auto;">📂 選擇站點</button>
+                            </div>
+
+                            <button id="sendBtnCustom" onclick="handleCustomRoute()" class="btn-primary"
+                                style="background: linear-gradient(135deg, #a855f7, #6366f1);">
+                                📍 驗證並規劃路線
+                            </button>
+                            <div id="custom-status"
+                                style="font-size:0.9em; color:#aaa; margin-top:5px; min-height:1.2em;"></div>
+                        </div>
+
+                        <div id="itinerary-result-custom" class="result-box" style="padding:15px; min-height:100px;">
+                            <span style="color:#666">等待輸入...</span>
+                        </div>
+                    </div>
+
+                    <!-- Section Title: Favorite Stations (Optional for Custom?) -->
+                    <div style="grid-column: 1 / -1; margin-top: 10px;">
+                        <h2>喜好站點</h2>
+                    </div>
+
+                    <!-- Section 2: Train -->
+                    <div class="card">
+                        <h2>🚄 火車 <button class="btn-add" onclick="openStationModal('train')">+</button></h2>
+                        <div id="train-list-3" class="station-list"></div>
+                        <div id="train-result-3" class="result-box"></div>
+                    </div>
+
+                    <!-- Section 3: MRT -->
+                    <div class="card">
+                        <h2>捷運 <button class="btn-add" onclick="openStationModal('mrt')">+</button></h2>
+                        <div id="mrt-list-3" class="station-list"></div>
+                        <div id="mrt-result-3" class="result-box"></div>
+                    </div>
+
+                    <!-- Section 3: Bus -->
+                    <div class="card">
+                        <h2>🚌 公車 <button class="btn-add" onclick="openStationModal('bus')">+</button></h2>
+                        <div id="bus-list-3" class="station-list"></div>
+                        <div id="bus-result-3" class="result-box"></div>
+                    </div>
+
+                    <!-- Section 4: Bike -->
+                    <div class="card">
+                        <h2>🚲 YouBike <button class="btn-add" onclick="openStationModal('bike')">+</button></h2>
+                        <div id="bike-list-3" class="station-list"></div>
+                        <div id="bike-result-3" class="result-box"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STATION MODAL (Add Stations) -->
+        <div id="stationModal" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modalTitle" style="margin:0;">新增站點</h3>
+                    <div style="flex-grow: 1; display: flex; gap: 5px; position: relative; margin: 0 15px;">
+                        <input type="text" id="modalSearch" oninput="filterStations(this.value)"
+                            style="margin: 0; padding:6px;" placeholder="搜尋站點...">
+                        <button id="clearSearchBtn" onclick="clearSearch()"
+                            style="display:none; position:absolute; right:5px; top:5px; padding:2px 5px;">X</button>
+                    </div>
+                    <button onclick="openDebugModal('modal')"
+                        style="font-size:0.8rem; padding: 4px 8px; margin-right:5px;">Debug Info</button>
+                    <button onclick="closeModal('stationModal')"
+                        style="border:none; font-size:1.5rem; background:transparent;">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="modal-sidebar" id="modalSidebar"></div>
+                    <div class="modal-main">
+                        <div id="loadingIndicator" style="display:none; text-align:center;">AI 搜尋中...</div>
+                        <div id="modalGrid" class="station-grid"></div>
+                        <div id="modalHelpText" style="margin-top:auto; color:#64748b; font-size:0.8em;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SETTINGS MODAL -->
+        <div id="settingsModal" class="modal-overlay">
+            <div class="modal-content sm">
+                <div class="modal-header">
+                    <h3>⚙️ 個人化設定</h3>
+                    <div style="display:flex; gap:10px;">
+                        <button onclick="openHelpModal()" style="padding:4px 10px; font-size:0.9em;">❓ 說明</button>
+                        <button onclick="closeModal('settingsModal')">×</button>
+                    </div>
+                </div>
+                <div class="settings-form">
+                    <!-- Tabs -->
+                    <div class="tabs" style="display:flex; gap:10px; margin-bottom:15px; border-bottom:1px solid #444;">
+                        <button id="tabBtnWeekday" class="tab-btn active" onclick="switchSettingsTab('weekday')"
+                            style="padding:8px 15px; background:none; border:none; color:var(--text-color); border-bottom:2px solid var(--accent-color);">🏢
+                            平日設定</button>
+                        <button id="tabBtnHoliday" class="tab-btn" onclick="switchSettingsTab('holiday')"
+                            style="padding:8px 15px; background:none; border:none; color:#888;">🏖️ 假日設定</button>
+                    </div>
+
+                    <!-- API Key (Common) -->
+                    <div class="form-group">
+                        <label class="form-label">Google Gemini API Key</label>
+                        <input type="password" id="settingApiKey" placeholder="貼上 API Key">
+                    </div>
+
+                    <hr style="border:0; border-top:1px solid var(--card-border); margin:20px 0;">
+
+                    <!-- Tab Content: Weekday -->
+                    <div id="tabWeekday" class="tab-content">
+                        <!-- Work Settings -->
+                        <div class="form-group">
+                            <label class="form-label">🏢 上班設定</label>
+                            <span class="form-sub-label">上班時間</span>
+                            <input type="time" id="settingWorkTime">
+
+                            <span class="form-sub-label" style="margin-top:10px;">交通工具組合 (途中)</span>
+                            <div class="checkbox-group">
+                                <label class="checkbox-label"><input type="checkbox" name="workTrans" value="train">
+                                    火車</label>
+                                <label class="checkbox-label"><input type="checkbox" name="workTrans" value="mrt">
+                                    捷運</label>
+                                <label class="checkbox-label"><input type="checkbox" name="workTrans" value="bus">
+                                    公車</label>
+                                <label class="checkbox-label"><input type="checkbox" name="workTrans" value="bike">
+                                    YouBike</label>
+                            </div>
+
+                            <!-- Work Last Mile -->
+                            <div class="sub-box">
+                                <label class="form-label" style="font-size:0.95em;">🏁 最後一哩路 (抵達公司)</label>
+                                <div style="display:flex; gap:10px;">
+                                    <input type="text" id="settingWorkStation" placeholder="點擊選擇站點..." readonly
+                                        onclick="openSourceSelectModal('work')"
+                                        style="cursor:pointer; background:#2a2a2a;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Home Settings -->
+                        <div class="form-group">
+                            <label class="form-label">🏠 下班設定</label>
+                            <span class="form-sub-label">下班時間</span>
+                            <input type="time" id="settingHomeTime">
+
+                            <span class="form-sub-label" style="margin-top:10px;">交通工具組合 (途中)</span>
+                            <div class="checkbox-group">
+                                <label class="checkbox-label"><input type="checkbox" name="homeTrans" value="train">
+                                    火車</label>
+                                <label class="checkbox-label"><input type="checkbox" name="homeTrans" value="mrt">
+                                    捷運</label>
+                                <label class="checkbox-label"><input type="checkbox" name="homeTrans" value="bus">
+                                    公車</label>
+                                <label class="checkbox-label"><input type="checkbox" name="homeTrans" value="bike">
+                                    YouBike</label>
+                            </div>
+
+                            <!-- Home Last Mile -->
+                            <div class="sub-box">
+                                <label class="form-label" style="font-size:0.95em;">🏁 最後一哩路 (抵達住家)</label>
+                                <div style="display:flex; gap:10px;">
+                                    <input type="text" id="settingHomeStation" placeholder="點擊選擇站點..." readonly
+                                        onclick="openSourceSelectModal('home')"
+                                        style="cursor:pointer; background:#2a2a2a;">
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Home Settings -->
-                    <div class="form-group">
-                        <label class="form-label">🏠 下班設定</label>
-                        <span class="form-sub-label">下班時間</span>
-                        <input type="time" id="settingHomeTime">
-
-                        <span class="form-sub-label" style="margin-top:10px;">交通工具組合 (途中)</span>
-                        <div class="checkbox-group">
-                            <label class="checkbox-label"><input type="checkbox" name="homeTrans" value="train">
-                                火車</label>
-                            <label class="checkbox-label"><input type="checkbox" name="homeTrans" value="mrt">
-                                捷運</label>
-                            <label class="checkbox-label"><input type="checkbox" name="homeTrans" value="bus">
-                                公車</label>
-                            <label class="checkbox-label"><input type="checkbox" name="homeTrans" value="bike">
-                                YouBike</label>
+                    <!-- Tab Content: Holiday -->
+                    <div id="tabHoliday" class="tab-content" style="display:none;">
+                        <div class="alert-box"
+                            style="background:rgba(255,255,255,0.05); padding:10px; border-radius:4px; margin-bottom:15px; font-size:0.9em; color:#aaa;">
+                            ℹ️ 系統會自動根據台灣國定假日(ROC Calendar)判斷是否為假日。如果是假日，將優先使用此處設定。
                         </div>
 
-                        <!-- Home Last Mile -->
-                        <div class="sub-box">
-                            <label class="form-label" style="font-size:0.95em;">🏁 最後一哩路 (抵達住家)</label>
-                            <div style="display:flex; gap:10px;">
-                                <input type="text" id="settingHomeStation" placeholder="點擊選擇站點..." readonly
-                                    onclick="openSourceSelectModal('home')" style="cursor:pointer; background:#2a2a2a;">
+                        <!-- Old Home Settings -->
+                        <div class="form-group">
+                            <label class="form-label">🏡 抵達老家</label>
+                            <!-- Old Home Last Mile -->
+                            <div class="sub-box">
+                                <label class="form-label" style="font-size:0.95em;">🏁 最後一哩路</label>
+                                <div style="display:flex; gap:10px;">
+                                    <input type="text" id="settingOldHomeStation" placeholder="點擊選擇站點..." readonly
+                                        onclick="openSourceSelectModal('holiday_oldHome')"
+                                        style="cursor:pointer; background:#2a2a2a;">
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                <!-- Tab Content: Holiday -->
-                <div id="tabHoliday" class="tab-content" style="display:none;">
-                    <div class="alert-box"
-                        style="background:rgba(255,255,255,0.05); padding:10px; border-radius:4px; margin-bottom:15px; font-size:0.9em; color:#aaa;">
-                        ℹ️ 系統會自動根據台灣國定假日(ROC Calendar)判斷是否為假日。如果是假日，將優先使用此處設定。
-                    </div>
-
-                    <!-- Old Home Settings -->
-                    <div class="form-group">
-                        <label class="form-label">🏡 抵達老家</label>
-                        <!-- Old Home Last Mile -->
-                        <div class="sub-box">
-                            <label class="form-label" style="font-size:0.95em;">🏁 最後一哩路</label>
-                            <div style="display:flex; gap:10px;">
-                                <input type="text" id="settingOldHomeStation" placeholder="點擊選擇站點..." readonly
-                                    onclick="openSourceSelectModal('holiday_oldHome')"
-                                    style="cursor:pointer; background:#2a2a2a;">
+                        <!-- Holiday Home Settings -->
+                        <div class="form-group">
+                            <label class="form-label">🏠 抵達住家 (回程)</label>
+                            <!-- Holiday Home Last Mile -->
+                            <div class="sub-box">
+                                <label class="form-label" style="font-size:0.95em;">🏁 最後一哩路</label>
+                                <div style="display:flex; gap:10px;">
+                                    <input type="text" id="settingHolidayHomeStation" placeholder="點擊選擇站點..." readonly
+                                        onclick="openSourceSelectModal('holiday_home')"
+                                        style="cursor:pointer; background:#2a2a2a;">
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Holiday Home Settings -->
-                    <div class="form-group">
-                        <label class="form-label">🏠 抵達住家 (回程)</label>
-                        <!-- Holiday Home Last Mile -->
-                        <div class="sub-box">
-                            <label class="form-label" style="font-size:0.95em;">🏁 最後一哩路</label>
-                            <div style="display:flex; gap:10px;">
-                                <input type="text" id="settingHolidayHomeStation" placeholder="點擊選擇站點..." readonly
-                                    onclick="openSourceSelectModal('holiday_home')"
-                                    style="cursor:pointer; background:#2a2a2a;">
-                            </div>
-                        </div>
+                    <button class="btn-primary" onclick="saveSettings()">儲存設定</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Source Selection Modal (New) -->
+        <div id="sourceSelectModal" class="modal-overlay-top">
+            <div class="modal-content sm" style="max-width: 400px; text-align: center;">
+                <div class="modal-header">
+                    <h3>選擇站點</h3>
+                    <button onclick="closeModal('sourceSelectModal')">×</button>
+                </div>
+                <div class="modal-body" style="padding: 20px 0;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <button class="btn-menu" onclick="openStationModal('train', 'select')">🚆 火車</button>
+                        <button class="btn-menu" onclick="openStationModal('mrt', 'select')">🚇 捷運</button>
+                        <button class="btn-menu" onclick="openStationModal('bus', 'select')">🚌 公車</button>
+                        <button class="btn-menu" onclick="openStationModal('bike', 'select')">🚲 YouBike</button>
                     </div>
                 </div>
-
-                <button class="btn-primary" onclick="saveSettings()">儲存設定</button>
             </div>
         </div>
-    </div>
 
-    <!-- Source Selection Modal (New) -->
-    <div id="sourceSelectModal" class="modal-overlay-top">
-        <div class="modal-content sm" style="max-width: 400px; text-align: center;">
-            <div class="modal-header">
-                <h3>選擇站點</h3>
-                <button onclick="closeModal('sourceSelectModal')">×</button>
-            </div>
-            <div class="modal-body" style="padding: 20px 0;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                    <button class="btn-menu" onclick="openStationModal('train', 'select')">🚆 火車</button>
-                    <button class="btn-menu" onclick="openStationModal('mrt', 'select')">🚇 捷運</button>
-                    <button class="btn-menu" onclick="openStationModal('bus', 'select')">🚌 公車</button>
-                    <button class="btn-menu" onclick="openStationModal('bike', 'select')">🚲 YouBike</button>
+        <!-- HELP MODAL -->
+        <div id="helpModal" class="modal-overlay-top">
+            <div class="modal-content sm">
+                <div class="modal-header">
+                    <h3>❓ 使用說明</h3>
+                    <button onclick="closeModal('helpModal')">×</button>
+                </div>
+                <div class="modal-body" style="overflow-y: auto;">
+                    <div class="help-content">
+                        <h2>Odise Gemini Assistant</h2>
+                        <p>一個基於 Google Gemini API 的個人助理網頁，整合了交通資訊查詢功能。</p>
+
+                        <h3>✨ 功能特色</h3>
+                        <ul>
+                            <li><strong>交通時刻查詢</strong>：火車、公車、YouBike (自定義站點)。</li>
+                            <li><strong>GPS 定位</strong>：自動抓取當前位置以提供最近站點資訊。</li>
+                            <li><strong>自動版本號</strong>：每次 Git Commit 自動注入更新時間。</li>
+                        </ul>
+
+                        <h3>🚀 如何使用</h3>
+                        <ol>
+                            <li><strong>設定 API Key</strong>：
+                                <ul>
+                                    <li>前往 <a href="https://aistudio.google.com/" target="_blank"
+                                            style="color:var(--accent-color)">Google AI Studio</a> 申請 API Key。
+                                    </li>
+                                    <li>在個人化設定中輸入 Key 並儲存。</li>
+                                    <li><em>注意：Key 僅儲存在您的瀏覽器 LocalStorage 中，不會上傳至伺服器。</em></li>
+                                </ul>
+                            </li>
+                            <li><strong>新增站點</strong>：
+                                <ul>
+                                    <li>點擊各區塊的「+」按鈕。</li>
+                                    <li><strong>火車</strong>：可透過左側縣市選單或上方搜尋框尋找站點。</li>
+                                    <li><strong>公車/YouBike</strong>：直接在搜尋框輸入站點名稱 (如 "307", "捷運板橋站")，並點擊「新增」。
+                                    </li>
+                                </ul>
+                            </li>
+                            <li><strong>發送查詢</strong>：
+                                <ul>
+                                    <li>點擊「根據設定取得 GPS 並查詢」。</li>
+                                    <li>允許瀏覽器定位權限。</li>
+                                    <li>Gemini 將會根據您的站點列表與位置回覆資訊。</li>
+                                </ul>
+                            </li>
+                        </ol>
+
+                        <h3>❓ 常見問題</h3>
+                        <ul>
+                            <li><strong>Q: 頁面一直提示「尚未偵測到金鑰」？</strong>
+                                <p style="margin-top:5px;">請確認您有點擊「儲存設定」按鈕。<br>
+                                    <strong>如果您使用 VS Code 的 Preview 功能</strong>：建議直接用電腦的 <strong>Chrome
+                                        瀏覽器</strong> 開啟
+                                    <code>index.html</code> 檔案。
+                                </p>
+                            </li>
+                            <li><strong>Q: 為什麼 GPS 沒反應？</strong>
+                                <p style="margin-top:5px;">請確認瀏覽器有允許網頁存取位置權限。<br>
+                                    需要在 <code>https</code> 或 <code>file://</code> (本地檔案) 環境下執行。</p>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- HELP MODAL -->
-    <div id="helpModal" class="modal-overlay-top">
-        <div class="modal-content sm">
-            <div class="modal-header">
-                <h3>❓ 使用說明</h3>
-                <button onclick="closeModal('helpModal')">×</button>
-            </div>
-            <div class="modal-body" style="overflow-y: auto;">
-                <div class="help-content">
-                    <h2>Odise Gemini Assistant</h2>
-                    <p>一個基於 Google Gemini API 的個人助理網頁，整合了交通資訊查詢功能。</p>
-
-                    <h3>✨ 功能特色</h3>
-                    <ul>
-                        <li><strong>交通時刻查詢</strong>：火車、公車、YouBike (自定義站點)。</li>
-                        <li><strong>GPS 定位</strong>：自動抓取當前位置以提供最近站點資訊。</li>
-                        <li><strong>自動版本號</strong>：每次 Git Commit 自動注入更新時間。</li>
-                    </ul>
-
-                    <h3>🚀 如何使用</h3>
-                    <ol>
-                        <li><strong>設定 API Key</strong>：
-                            <ul>
-                                <li>前往 <a href="https://aistudio.google.com/" target="_blank"
-                                        style="color:var(--accent-color)">Google AI Studio</a> 申請 API Key。
-                                </li>
-                                <li>在個人化設定中輸入 Key 並儲存。</li>
-                                <li><em>注意：Key 僅儲存在您的瀏覽器 LocalStorage 中，不會上傳至伺服器。</em></li>
-                            </ul>
-                        </li>
-                        <li><strong>新增站點</strong>：
-                            <ul>
-                                <li>點擊各區塊的「+」按鈕。</li>
-                                <li><strong>火車</strong>：可透過左側縣市選單或上方搜尋框尋找站點。</li>
-                                <li><strong>公車/YouBike</strong>：直接在搜尋框輸入站點名稱 (如 "307", "捷運板橋站")，並點擊「新增」。
-                                </li>
-                            </ul>
-                        </li>
-                        <li><strong>發送查詢</strong>：
-                            <ul>
-                                <li>點擊「根據設定取得 GPS 並查詢」。</li>
-                                <li>允許瀏覽器定位權限。</li>
-                                <li>Gemini 將會根據您的站點列表與位置回覆資訊。</li>
-                            </ul>
-                        </li>
-                    </ol>
-
-                    <h3>❓ 常見問題</h3>
-                    <ul>
-                        <li><strong>Q: 頁面一直提示「尚未偵測到金鑰」？</strong>
-                            <p style="margin-top:5px;">請確認您有點擊「儲存設定」按鈕。<br>
-                                <strong>如果您使用 VS Code 的 Preview 功能</strong>：建議直接用電腦的 <strong>Chrome
-                                    瀏覽器</strong> 開啟
-                                <code>index.html</code> 檔案。
-                            </p>
-                        </li>
-                        <li><strong>Q: 為什麼 GPS 沒反應？</strong>
-                            <p style="margin-top:5px;">請確認瀏覽器有允許網頁存取位置權限。<br>
-                                需要在 <code>https</code> 或 <code>file://</code> (本地檔案) 環境下執行。</p>
-                        </li>
-                    </ul>
+        <!-- Debug Console Modal -->
+        <div id="debugModal" class="modal-overlay">
+            <div class="modal-content debug-modal"
+                style="width: 90vw; height: 90vh; display: flex; flex-direction: column;">
+                <div class="modal-header">
+                    <h2>🛠️ 後台 Debug Console</h2>
+                    <span class="close-btn" onclick="closeModal('debugModal')">&times;</span>
+                </div>
+                <div class="modal-body"
+                    style="flex: 1; display: flex; flex-direction: column; overflow: hidden; gap: 10px;">
+                    <div style="flex: 1; display: flex; flex-direction: column;">
+                        <label id="debugPromptLabel" style="color: var(--accent-color); font-weight: bold;">📤 Sent
+                            Prompt</label>
+                        <textarea id="debugPrompt" readonly
+                            style="flex: 1; width: 100%; background: #111; color: #0f0; padding: 10px; font-family: monospace; border: 1px solid #333; resize: none;"></textarea>
+                    </div>
+                    <div style="flex: 1; display: flex; flex-direction: column;">
+                        <label style="color: var(--accent-color); font-weight: bold;">📥 Received Response</label>
+                        <textarea id="debugResponse"
+                            style="flex: 1; width: 100%; background: #111; color: #0df; padding: 10px; font-family: monospace; border: 1px solid #333; resize: none;"></textarea>
+                        <button onclick="simulateRendering()" class="btn-primary"
+                            style="margin-top:10px; background: var(--success-color);">▶ 模擬渲染 (Simulate
+                            Rendering)</button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Debug Console Modal -->
-    <div id="debugModal" class="modal-overlay">
-        <div class="modal-content debug-modal"
-            style="width: 90vw; height: 90vh; display: flex; flex-direction: column;">
-            <div class="modal-header">
-                <h2>🛠️ 後台 Debug Console</h2>
-                <span class="close-btn" onclick="closeModal('debugModal')">&times;</span>
-            </div>
-            <div class="modal-body"
-                style="flex: 1; display: flex; flex-direction: column; overflow: hidden; gap: 10px;">
-                <div style="flex: 1; display: flex; flex-direction: column;">
-                    <label style="color: var(--accent-color); font-weight: bold;">📤 Sent Prompt</label>
-                    <textarea id="debugPrompt" readonly
-                        style="flex: 1; width: 100%; background: #111; color: #0f0; padding: 10px; font-family: monospace; border: 1px solid #333; resize: none;"></textarea>
-                </div>
-                <div style="flex: 1; display: flex; flex-direction: column;">
-                    <label style="color: var(--accent-color); font-weight: bold;">📥 Received Response</label>
-                    <textarea id="debugResponse"
-                        style="flex: 1; width: 100%; background: #111; color: #0df; padding: 10px; font-family: monospace; border: 1px solid #333; resize: none;"></textarea>
-                    <button onclick="simulateRendering()" class="btn-primary"
-                        style="margin-top:10px; background: var(--success-color);">▶ 模擬渲染 (Simulate Rendering)</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Scripts -->
-    <script src="version.js"></script>
-    <script src="station_data.js"></script>
-    <script src="api_service.js"></script>
-    <script src="script.js"></script>
+        <!-- Scripts -->
+        <script src="version.js"></script>
+        <script src="station_data.js"></script>
+        <script src="api_service.js"></script>
+        <script src="script.js"></script>
 </body>
 
 </html>

@@ -53,6 +53,53 @@
 - **邏輯調整 (script.js)**：
     - 修改 `renderResult`，強制顯示「搭乘順序」標題。若無資料則在標題下方顯示「無建議」，保持介面結構一致。
 
+## 實作儀表板分頁 (Tabs)
+**日期：** 2026-01-09
+**ID：** `implement_dashboard_tabs`
+
+**目標：**
+將儀表板改為分頁式設計，新增「回老家」與「想去哪」專屬功能區。
+
+**關鍵行動：**
+- **UI 結構 (index.html)**：
+    - 新增 `.dashboard-tabs` 導航列。
+    - 建立三個內容區塊：
+        1.  **日常通勤**：既有功能。
+        2.  **回老家**：強制規畫回老家路線。
+        3.  **想去哪?**：自訂目的地輸入框，支援手動輸入與站點選單。
+- **邏輯實作 (script.js)**：
+    - `switchDashboardTab`: 切換顯示的內容與重繪站點列表。
+    - `handleSend('old_home')`: 觸發回老家專屬 prompt。
+    - `handleCustomRoute`: 新增 AI 地點驗證流程 (`valid: true/false`)，確認地點存在後再進行導航規劃。
+    - 共用元件：修改 `renderAllStations` 與 `renderResult` 以支援多個 DOM 容器 (透過 `suffixes` 處理 id 差異)，確保喜好站點在不同分頁皆可見。
+
+## 調查 IDE 預覽套件問題
+**日期：** 2026-01-09
+**ID：** `investigate_ide_preview_extension`
+
+**目標：**
+解決使用者已安裝 Antigravity Browser Extension 但 IDE 預覽功能仍持續要求安裝的問題。
+
+**關鍵發現：**
+- **特定 Chrome 實例**：Antigravity IDE 通常會啟動一個 "託管的" Chrome 實例 (Managed Chrome Profile)，擴充功能必須安裝在 **該實例** 中，而非使用者平常使用的個人 Chrome。
+- **解決方案**：
+    1.  確認是否使用了 IDE 啟動的 Chrome 視窗。
+    2.  若是在個人 Chrome 中安裝，IDE 無法偵測到。
+    3.  建議重新啟動 IDE，並讓 IDE 自動開啟瀏覽器視窗，按照提示在該視窗中進行安裝。
+    4.  檢查防火牆或防毒軟體是否阻擋了 IDE 與瀏覽器之間的 localhost 連線。
+
+## 用戶回報：Extension 安裝與偵測問題
+**日期：** 2026-01-09
+**ID：** `extension_detection_loop`
+
+**狀況：**
+用戶確認已在 IDE 啟動的瀏覽器中安裝擴充功能，但頁面仍卡在 `Browser Setup` (Loop)，詢問是否需手動開啟測試。
+
+**建議步驟：**
+1.  **點擊擴充功能圖示**：確認狀態是否為 "Connected"。
+2.  **檢查 `chrome://extensions`**：確認已啟用 (Enabled)。
+3.  **重新整理頁面**：有時安裝後需刷新 Onboarding 頁面觸發偵測。
+
 ## 修改 AI 模型為 2.0 Flash
 **日期：** 2026-01-08
 **ID：** `update_model_to_2_0_flash`

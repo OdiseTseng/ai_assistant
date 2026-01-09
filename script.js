@@ -26,31 +26,131 @@ const state = {
     settings: DEFAULT_SETTINGS
 };
 
+let currentDashboardTab = 'daily'; // daily, oldHome, custom
+
+function switchDashboardTab(tab) {
+    currentDashboardTab = tab;
+    // Update Buttons
+    const btns = document.querySelectorAll('.dashboard-tab-btn');
+
+    btns.forEach(btn => {
+        if (btn.getAttribute('onclick').includes(`'${tab}'`)) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+
+    // Update Content
+    document.querySelectorAll('.dashboard-tab-content').forEach(el => el.classList.remove('active'));
+    const target = document.getElementById(`tab-${tab}`);
+    if (target) {
+        target.classList.add('active');
+    }
+
+    // Refresh stations if needed
+    if (tab === 'oldHome' || tab === 'daily') {
+        setTimeout(renderAllStations, 0);
+    }
+}
+
 // --- HELPER: TIME LOGIC ---
+
+
+// --- HOLIDAY LOGIC ---
+let holidayCache = {}; // { "20260101": { isHoliday: true, name: "元旦" } }
+
+async function fetchHolidayData() {
+    // Try to fetch TW Calendar (Using a reliable JSON source for 2026 if available, else mock/weekend)
+    // Source: Government Open Data or a mirror. 
+    // For 2025/2026, data might be scarce. Let's use a logic-based fallback + fetch.
+    const year = new Date().getFullYear();
+    try {
+        const res = await fetch(`https://cdn.jsdelivr.net/gh/ruyut/TaiwanCalendar/data/${year}.json`);
+        // If not found, it might throw or 404.
+        if (res.ok) {
+            const data = await res.json();
+            data.forEach(d => {
+                // Format: d.date = "20260101"
+                holidayCache[d.date] = { isHoliday: d.isHoliday, name: d.description };
+            });
+        }
+    } catch (e) {
+        console.warn("Holiday data fetch failed:", e);
+    }
+}
+
+// Call on init
+fetchHolidayData();
+
+function isHoliday(dateObj) {
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const d = String(dateObj.getDate()).padStart(2, '0');
+    const key = `${y}${m}${d}`;
+    const dayOfWeek = dateObj.getDay();
+
+    if (holidayCache[key]) {
+        return holidayCache[key].isHoliday;
+    }
+    // Fallback: Weekend
+    return (dayOfWeek === 0 || dayOfWeek === 6);
+}
+
+// Override getCommuteMode with advanced logic
 function getCommuteMode(mockDate = null) {
     const now = mockDate || new Date();
     const hour = now.getHours();
-    const minute = now.getMinutes();
-    const currentMinutes = hour * 60 + minute;
 
-    // 1. Late Night Check (00:00 - 05:00)
-    if (hour >= 0 && hour < 5) {
-        return 'late_night';
+    // 0. Late Night (00-05)
+    if (hour >= 0 && hour < 5) return 'late_night';
+
+    const todayHoliday = isHoliday(now);
+
+    // Check Tomorrow for Pre-Holiday Logic
+    const tomorrow = new Date(now);
+    tomorrow.setDate(now.getDate() + 1);
+    const tomorrowHoliday = isHoliday(tomorrow);
+
+    // Check Yesterday for Post-Holiday Logic
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const yesterdayHoliday = isHoliday(yesterday);
+
+    // 1. Pre-Holiday Afternoon (Workday -> Holiday)
+    // If today is NOT holiday, but tomorrow IS holiday, and time >= 12:00
+    if (!todayHoliday && tomorrowHoliday && hour >= 12) {
+        return 'old_home'; // Go to Old Home
     }
 
-    // 2. Work Check (Work Time +/- 3 hours)
-    if (state.settings.workTime) {
-        const [wHour, wMinute] = state.settings.workTime.split(':').map(Number);
-        const workMinutes = wHour * 60 + wMinute;
-        const diff = Math.abs(currentMinutes - workMinutes);
+    // 2. Post-Holiday Morning (Holiday -> Workday)
+    // If yesterday WAS holiday, today is NOT holiday, and time < 12:00
+    if (yesterdayHoliday && !todayHoliday && hour < 12) {
+        return 'work'; // Back to Work (should match default work logic, but explicit priority)
+    }
 
-        // +/- 3 hours = 180 minutes
-        if (diff <= 180) {
-            return 'work';
+    // 3. Normal Work Logic
+    // If it's a workday
+    if (!todayHoliday) {
+        if (state.settings.workTime) {
+            const [wHour, wMinute] = state.settings.workTime.split(':').map(Number);
+            const currentMinutes = hour * 60 + now.getMinutes();
+            const workMinutes = wHour * 60 + wMinute;
+            // Work time +/- 3 hours
+            if (Math.abs(currentMinutes - workMinutes) <= 180) {
+                return 'work';
+            }
         }
+    } else {
+        // It IS a holiday. Default to 'home' or 'old_home'? 
+        // User asked for "Back to Old Home" logic.
+        // Usually on holiday you are AT old home or going OUT.
+        // Let's stick to 'home' (which means "Not Commuting") unless specified.
+        // Or if user wants "Return from Old Home to Work Home"?
+        // Logic: Post-holiday morning handles the return.
     }
 
-    // 3. Default: Home (After work)
+    // 4. Default
     return 'home';
 }
 
@@ -267,15 +367,35 @@ function closeModal(id) {
 }
 
 // --- DEBUG CONSOLE ---
-window.lastDebugData = { prompt: "尚無查詢紀錄", response: "尚無回應紀錄" };
+window.lastDebugData = { prompt: "尚無查詢紀錄", response: "尚無回應紀錄", queryType: "gemini" }; // queryType: 'gemini' or 'search'
 
-function openDebugModal() {
+function openDebugModal(context = 'main') {
+    // If context is 'modal' (from Station Modal), we might show different labels?
+    // User requested: "If non-gemini-flash search, show 'Sent Query' field"
+
+    // Logic: Look at window.lastDebugData.queryType
+    const isGemini = window.lastDebugData.queryType === 'gemini';
+    const label = document.getElementById('debugPromptLabel');
+    if (label) {
+        label.innerText = isGemini ? "📤 Sent Prompt" : "📤 Sent Query";
+    }
+
     document.getElementById('debugPrompt').value = window.lastDebugData.prompt;
+
     const responseText = typeof window.lastDebugData.response === 'object'
         ? JSON.stringify(window.lastDebugData.response, null, 2)
         : window.lastDebugData.response;
     document.getElementById('debugResponse').value = responseText;
-    document.getElementById('debugModal').classList.add('active');
+
+    // Ensure modal appears on top if called from another modal?
+    const modal = document.getElementById('debugModal');
+    modal.classList.add('active');
+
+    if (context === 'modal') {
+        modal.style.zIndex = "20000"; // Higher than stationModal
+    } else {
+        modal.style.zIndex = "";
+    }
 }
 
 function simulateRendering() {
@@ -554,13 +674,17 @@ function selectLastMileStation(item, type) {
     else if (selectionTarget === 'home') inputId = 'settingHomeStation';
     else if (selectionTarget === 'holiday_oldHome') inputId = 'settingOldHomeStation';
     else if (selectionTarget === 'holiday_home') inputId = 'settingHolidayHomeStation';
+    else if (selectionTarget === 'custom') inputId = 'customDestInput';
 
 
     if (inputId) {
+        // For custom, maybe we don't want the (Type) suffix?
+        // User might want just the name. But validation handles "Name (Type)" fine usually.
+        // Let's use formatted name for clarity.
         document.getElementById(inputId).value = formattedName;
     }
     closeModal('stationModal');
-    // openSettings(); // Do not reload settings, as it overwrites current inputs with saved state
+    // openSettings(); // Do not reload settings
 }
 
 let searchTimeout = null;
@@ -601,23 +725,26 @@ function filterStations(query) {
 
 function renderAllStations() {
     ['train', 'mrt', 'bus', 'bike'].forEach(type => {
-        const container = document.getElementById(`${type}-list`);
-        if (container) {
-            container.innerHTML = '';
-            state[type].forEach((s, idx) => {
-                const div = document.createElement('div');
-                div.className = 'station-tag';
-                const name = s.name || s;
-                let extraInfo = '';
-                // Bike info is now only in search results, but if user wants it back or logic needs it:
-                // For now, keep it empty or simple.
+        // Target Main (Daily), Secondary (OldHome), and Tertiary (Custom) lists
+        const suffixes = ['', '-2', '-3'];
 
-                div.innerHTML = `
-                    ${getMapLinkHtml(name, s.lat, s.lng, name)}${extraInfo}<span class="remove-icon" onclick="removeStation('${type}', ${idx})">×</span>
-                `;
-                container.appendChild(div);
-            });
-        }
+        suffixes.forEach(suffix => {
+            const container = document.getElementById(`${type}-list${suffix}`);
+            if (container) {
+                container.innerHTML = '';
+                state[type].forEach((s, idx) => {
+                    const div = document.createElement('div');
+                    div.className = 'station-tag';
+                    const name = s.name || s;
+                    let extraInfo = '';
+
+                    div.innerHTML = `
+                        ${getMapLinkHtml(name, s.lat, s.lng, name)}${extraInfo}<span class="remove-icon" onclick="removeStation('${type}', ${idx})">×</span>
+                    `;
+                    container.appendChild(div);
+                });
+            }
+        });
     });
 }
 
@@ -636,16 +763,25 @@ function clearSearch() {
 
 function checkKeyStatus() {
     const key = state.settings.apiKey;
-    const btn = document.getElementById('sendBtn');
-    if (!key) {
-        btn.disabled = true;
-        btn.innerText = "❌ 請先設定 API Key";
-        btn.style.background = "#333";
-    } else {
-        btn.disabled = false;
-        btn.innerText = "📍 根據設定取得 GPS 並查詢";
-        btn.style.background = ""; // reset
-    }
+    const btns = ['sendBtn', 'sendBtnOldHome', 'sendBtnCustom'];
+
+    btns.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            if (!key) {
+                btn.disabled = true;
+                // Only change text for the main button or all?
+                // Let's keep original text logic or simple override.
+                // For simplicity:
+                if (id === 'sendBtn') btn.innerText = "❌ 請先設定 API Key";
+                btn.style.background = "#333";
+            } else {
+                btn.disabled = false;
+                if (id === 'sendBtn') btn.innerText = "📍 根據設定取得 GPS 並查詢";
+                btn.style.background = ""; // reset
+            }
+        }
+    });
 }
 
 function checkSettingsAndPrompt() {
@@ -674,79 +810,87 @@ function getBikeInfoHtml(name) {
 }
 
 function renderResult(type, list) {
-    const div = document.getElementById(`${type}-result`);
-    if (div) {
-        div.innerHTML = '';
+    // Determine which containers to update.
+    // Ideally we update BOTH if we want them synced, or just the active tab's.
+    // Let's update ALL matching containers for simplicity.
+    const suffixes = ['', '-2', '-3'];
 
-        // Always show Title "搭乘順序"
-        const title = document.createElement('h4');
-        title.innerText = "搭乘順序";
-        title.style.margin = "0 0 10px 0";
-        title.style.color = "var(--accent-color)";
-        div.appendChild(title);
+    suffixes.forEach(suffix => {
+        const div = document.getElementById(`${type}-result${suffix}`);
+        if (div) {
+            div.innerHTML = '';
 
-        if (!list || list.length === 0) {
-            const span = document.createElement('span');
-            span.style.color = "#666";
-            span.innerText = "無建議";
-            div.appendChild(span);
-            return;
-        }
 
-        list.forEach(t => {
-            const d = document.createElement('div');
-            d.style.padding = "10px";
-            d.style.marginBottom = "10px";
-            d.style.borderBottom = "1px solid #333";
-            d.style.background = "rgba(255,255,255,0.02)";
-            d.style.borderRadius = "5px";
+            // Always show Title "搭乘順序"
+            const title = document.createElement('h4');
+            title.innerText = "搭乘順序";
+            title.style.margin = "0 0 10px 0";
+            title.style.color = "var(--accent-color)";
+            div.appendChild(title);
 
-            // Check if it's a Flow Object (Start -> End)
-            if (typeof t === 'object' && t.from && t.to) {
-                const lineInfo = t.line ? ` - ${t.line}` : '';
+            if (!list || list.length === 0) {
+                const span = document.createElement('span');
+                span.style.color = "#666";
+                span.innerText = "無建議";
+                div.appendChild(span);
+                return;
+            }
 
-                // Special Format for Bus: "Station - Board [Routes]"
-                if (type === 'bus') {
-                    d.innerHTML = `
+            list.forEach(t => {
+                const d = document.createElement('div');
+                d.style.padding = "10px";
+                d.style.marginBottom = "10px";
+                d.style.borderBottom = "1px solid #333";
+                d.style.background = "rgba(255,255,255,0.02)";
+                d.style.borderRadius = "5px";
+
+                // Check if it's a Flow Object (Start -> End)
+                if (typeof t === 'object' && t.from && t.to) {
+                    const lineInfo = t.line ? ` - ${t.line}` : '';
+
+                    // Special Format for Bus: "Station - Board [Routes]"
+                    if (type === 'bus') {
+                        d.innerHTML = `
                         <div style="font-weight:bold">${getMapLinkHtml(t.from, t.lat_from, t.lng_from)} <span style="font-weight:normal; color:#aaa"> -搭乘 ${t.line || '公車'}</span></div>
                         <div style="text-align:center; color:var(--accent-color); margin: 5px 0;">↓</div>
                         <div style="font-weight:bold">${getMapLinkHtml(t.to, t.lat_to, t.lng_to)} <span style="font-weight:normal; color:#aaa"> -下車</span></div>
                     `;
-                } else if (type === 'bike') {
-                    // Bike Format: "Station - Rent" ... "Station - Return"
-                    const fromInfo = getBikeInfoHtml(t.from);
-                    const toInfo = getBikeInfoHtml(t.to);
+                    } else if (type === 'bike') {
+                        // Bike Format: "Station - Rent" ... "Station - Return"
+                        const fromInfo = getBikeInfoHtml(t.from);
+                        const toInfo = getBikeInfoHtml(t.to);
 
-                    d.innerHTML = `
+                        d.innerHTML = `
                         <div style="font-weight:bold">${getMapLinkHtml(t.from, t.lat_from, t.lng_from)} ${fromInfo} <span style="font-weight:normal; color:#aaa"> -租車</span></div>
                         <div style="text-align:center; color:var(--accent-color); margin: 5px 0;">↓</div>
                         <div style="font-weight:bold">${getMapLinkHtml(t.to, t.lat_to, t.lng_to)} ${toInfo} <span style="font-weight:normal; color:#aaa"> -還車</span></div>
                     `;
-                } else {
-                    // Default Format for Train/MRT: "Station - Board" ... "Station - Get Off"
-                    d.innerHTML = `
+                    } else {
+                        // Default Format for Train/MRT: "Station - Board" ... "Station - Get Off"
+                        d.innerHTML = `
                         <div style="font-weight:bold">${getMapLinkHtml(t.from, t.lat_from, t.lng_from)} <span style="font-weight:normal; color:#aaa"> -上車${lineInfo}</span></div>
                         <div style="text-align:center; color:var(--accent-color); margin: 5px 0;">↓</div>
                         <div style="font-weight:bold">${getMapLinkHtml(t.to, t.lat_to, t.lng_to)} <span style="font-weight:normal; color:#aaa"> -下車</span></div>
                     `;
-                }
-            } else {
-                // Fallback for old simple list or simple objects
-                let name = t;
-                let lat = null; let lng = null;
-                if (typeof t === 'object' && t !== null) {
-                    name = t.name || t.station || t.stop || t.title || JSON.stringify(t);
-                    lat = t.lat || null;
-                    lng = t.lng || null;
-                }
+                    }
+                } else {
+                    // Fallback for old simple list or simple objects
+                    let name = t;
+                    let lat = null; let lng = null;
+                    if (typeof t === 'object' && t !== null) {
+                        name = t.name || t.station || t.stop || t.title || JSON.stringify(t);
+                        lat = t.lat || null;
+                        lng = t.lng || null;
+                    }
 
-                d.innerHTML = `
+                    d.innerHTML = `
                     ${getMapLinkHtml(typeof name === 'string' ? name : JSON.stringify(name), lat, lng)}
                 `;
-            }
-            div.appendChild(d);
-        });
-    }
+                }
+                div.appendChild(d);
+            });
+        }
+    });
 }
 
 function renderItineraries(list) {
@@ -860,17 +1004,91 @@ function updatePromptPreview() {
     preview.value = text;
 }
 
-function handleSend() {
-    const mode = getCommuteMode();
+function handleSend(overrideMode = null) {
+    const mode = overrideMode || getCommuteMode();
 
     if (mode === 'late_night') {
         alert("公共交通只剩下Ubike");
     }
 
-    // Pass logic to createCommutePrompt to ensure consistency
+    // Determine target Itinerary ID based on mode/tab
+    window.currentItineraryTarget = (overrideMode === 'old_home') ? 'itinerary-result-oldHome' : 'itinerary-result';
+
     createCommutePrompt(mode).then(prompt => {
-        callGeminiAPI(prompt);
+        // If overriding (e.g. old_home), we might want to target a specific button for loading state?
+        // simple default 'sendBtn' or 'sendBtnOldHome'
+        const btnId = (overrideMode === 'old_home') ? 'sendBtnOldHome' : 'sendBtn';
+        callGeminiAPI(prompt, btnId);
     });
+}
+
+// --- CUSTOM ROUTE ---
+function handleCustomRoute() {
+    const input = document.getElementById('customDestInput');
+    const dest = input.value.trim();
+    if (!dest) return alert("請輸入目的地");
+
+    const btn = document.getElementById('sendBtnCustom');
+    const status = document.getElementById('custom-status');
+    const key = state.settings.apiKey;
+
+    if (!key) return alert("請先設定 API Key");
+
+    if (btn) btn.disabled = true;
+    if (status) {
+        status.innerText = "🔍 指令 Gemini 驗證地點中...";
+        status.style.color = "var(--accent-color)";
+    }
+
+    // 1. Verify Location using AI
+    const verifyPrompt = `請驗證地點「${dest}」是否為台灣真實存在的地點或地標。
+    如果是，請提供它的精確經緯度。
+    回傳 JSON: { "valid": true, "formatted_name": "完整名稱", "lat": 25.xxx, "lng": 121.xxx }
+    如果不存在或不明確，回傳 { "valid": false, "reason": "原因" }`;
+
+    fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: verifyPrompt }] }] })
+    })
+        .then(res => res.json())
+        .then(data => {
+            const text = data.candidates[0].content.parts[0].text;
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            const json = jsonMatch ? JSON.parse(jsonMatch[0]) : { valid: false };
+
+            if (!json.valid) {
+                throw new Error(json.reason || "地點驗證失敗");
+            }
+
+            // 2. Planning Route
+            if (status) status.innerText = `✅ 已確認: ${json.formatted_name}。規劃路線中...`;
+
+            // Construct Prompt
+            getGPS().then(currentPos => {
+                const timeStr = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+                let prompt = `現在時間 ${timeStr}。我的位置在 ${currentPos}。`;
+                prompt += `\n我想前往：${json.formatted_name} (${json.lat}, ${json.lng})`;
+                prompt += `\n請提供最佳交通建議 (包含火車/捷運/公車/Ubike)。`;
+                prompt += `\n回傳 JSON 格式同上 (train, mrt, bus, bike, itineraries...)`;
+
+                // Set Target
+                window.currentItineraryTarget = 'itinerary-result-custom';
+
+                callGeminiAPI(prompt, 'sendBtnCustom');
+                if (status) status.innerText = "";
+            });
+
+        })
+        .catch(e => {
+            alert("錯誤: " + e.message);
+            if (status) {
+                status.innerText = "❌ " + e.message;
+                status.style.color = "var(--danger-color)";
+            }
+            if (btn) btn.disabled = false;
+        });
 }
 
 // --- NEW: BUS SEARCH UI ---

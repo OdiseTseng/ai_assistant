@@ -100,6 +100,19 @@ async function checkIsHoliday(dateObject) {
     return dayOfWeek === 0 || dayOfWeek === 6;
 }
 
+// --- HELPER: DISTANCE ---
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+    const R = 6371; // km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Distance in km
+}
+
 // --- GEMINI AI ---
 
 async function createCommutePrompt(modeOverride = null) {
@@ -139,7 +152,28 @@ async function createCommutePrompt(modeOverride = null) {
         const trans = s.oldHomeTrans || s.homeTrans || []; // Fallback to home trans
 
         prompt += `\n回老家設定: 目的地 ${dest.name} (${dest.trans.join('+')})`;
+        if (dest.coords) {
+            prompt += ` (座標: ${dest.coords.lat}, ${dest.coords.lng})`;
+        }
         prompt += `\n啟用交通工具: ${trans.join(', ')}`;
+
+        // Smart Origin Logic: Check if near Work or Home Last Mile
+        if (state.settings.workLastMile && state.settings.workLastMile.coords && pos !== "無GPS" && pos !== "GPS失敗") {
+            const [myLat, myLng] = pos.split(',').map(Number);
+            const dist = calculateDistance(myLat, myLng, state.settings.workLastMile.coords.lat, state.settings.workLastMile.coords.lng);
+            if (dist !== null && dist < 2.0) { // < 2km
+                prompt += `\n\n[系統提示] 偵測到您目前靠近上班地點 (${state.settings.workLastMile.name}, 距離 ${dist.toFixed(1)}km)。`;
+                prompt += `\n建議行程起點: 請直接規劃從「${state.settings.workLastMile.name}」出發前往老家。`;
+            }
+        }
+        if (state.settings.homeLastMile && state.settings.homeLastMile.coords && pos !== "無GPS" && pos !== "GPS失敗") {
+            const [myLat, myLng] = pos.split(',').map(Number);
+            const dist = calculateDistance(myLat, myLng, state.settings.homeLastMile.coords.lat, state.settings.homeLastMile.coords.lng);
+            if (dist !== null && dist < 2.0) { // < 2km
+                prompt += `\n\n[系統提示] 偵測到您目前靠近住家 (${state.settings.homeLastMile.name}, 距離 ${dist.toFixed(1)}km)。`;
+                prompt += `\n建議行程起點: 請直接規劃從「${state.settings.homeLastMile.name}」出發前往老家。`;
+            }
+        }
 
         prompt += `\n\n已儲存的常用站點：`;
         if (state.train.length) prompt += `\n火車: ${fmtStations(state.train)}`;

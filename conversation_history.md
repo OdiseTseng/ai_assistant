@@ -15,6 +15,21 @@
 - **使用者提問**：詢問 Antigravity 是否有中文顯示。
 - **回覆**：確認 Antigravity 具備中文溝通與輸出文件（如 Implementation Plan, Walkthrough 等）的能力，並遵循使用者設定的語言規則。
 
+## 實作回老家智慧起點與座標修正
+**日期：** 2026-01-14
+**ID：** `implement_smart_origin_and_coords`
+
+**目標：**
+修正「回老家」功能中，最後一哩路站點未儲存 GPS 座標的問題，並實作「智慧起點」邏輯：當使用者位於上班地點或住家附近時，自動建議以該處為起點。
+
+**關鍵行動：**
+- **座標儲存 (script.js)**：
+    - 修改 `openSettings`、`saveSettings` 與 `selectLastMileStation`，確保在選擇站點時將 `lat` / `lng` 座標寫入 dataset 並儲存至 `state`，解決僅儲存名稱導致 AI 無法精確定位的問題。
+- **智慧起點邏輯 (api_service.js)**：
+    - 新增 `calculateDistance` (Haversine 公式) 用於計算距離。
+    - 更新 `createCommutePrompt`：在「回老家」模式下，若偵測到目前 GPS 位置距離「上班地點」或「住家」小於 2 公里，則在 Prompt 中加入建議起點提示，引導 AI 規劃更精確的路線。
+- **驗證**：建立 `walkthrough.md` 引導使用者重新儲存設定並觀察 Debug Console 以驗證座標與距離判斷功能。
+
 ## 儀表板分頁、假期邏輯與 Debug 功能實作
 **日期：** 2026-01-09
 **ID：** `dashboard_tabs_holiday_debug_impl`

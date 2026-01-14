@@ -267,13 +267,29 @@ function openSettings() {
     // Weekday
     document.getElementById('settingWorkTime').value = state.settings.workTime;
     document.getElementById('settingHomeTime').value = state.settings.homeTime;
-    document.getElementById('settingWorkStation').value = state.settings.workLastMile.name || "";
-    document.getElementById('settingHomeStation').value = state.settings.homeLastMile.name || "";
+    const wEl = document.getElementById('settingWorkStation');
+    wEl.value = state.settings.workLastMile.name || "";
+    wEl.dataset.lat = state.settings.workLastMile.coords ? state.settings.workLastMile.coords.lat : "";
+    wEl.dataset.lng = state.settings.workLastMile.coords ? state.settings.workLastMile.coords.lng : "";
+
+    const hEl = document.getElementById('settingHomeStation');
+    hEl.value = state.settings.homeLastMile.name || "";
+    hEl.dataset.lat = state.settings.homeLastMile.coords ? state.settings.homeLastMile.coords.lat : "";
+    hEl.dataset.lng = state.settings.homeLastMile.coords ? state.settings.homeLastMile.coords.lng : "";
 
     // Holiday
     if (state.settings.holiday) {
-        document.getElementById('settingOldHomeStation').value = state.settings.holiday.oldHomeLastMile.name || "";
-        document.getElementById('settingHolidayHomeStation').value = state.settings.holiday.homeLastMile.name || "";
+        const oldHome = state.settings.holiday.oldHomeLastMile;
+        const eOld = document.getElementById('settingOldHomeStation');
+        eOld.value = oldHome.name || "";
+        eOld.dataset.lat = oldHome.coords ? oldHome.coords.lat : "";
+        eOld.dataset.lng = oldHome.coords ? oldHome.coords.lng : "";
+
+        const holHome = state.settings.holiday.homeLastMile;
+        const eHol = document.getElementById('settingHolidayHomeStation');
+        eHol.value = holHome.name || "";
+        eHol.dataset.lat = holHome.coords ? holHome.coords.lat : "";
+        eHol.dataset.lng = holHome.coords ? holHome.coords.lng : "";
     }
 
     // Apply Checkboxes Logic (Transport-in-transit only)
@@ -316,14 +332,25 @@ function saveSettings() {
     state.settings.workTrans = Array.from(document.querySelectorAll('input[name="workTrans"]:checked')).map(cb => cb.value);
     state.settings.homeTrans = Array.from(document.querySelectorAll('input[name="homeTrans"]:checked')).map(cb => cb.value);
 
+    // Helper to get coords
+    const getCoords = (elId) => {
+        const el = document.getElementById(elId);
+        if (el.dataset.lat && el.dataset.lng) {
+            return { lat: parseFloat(el.dataset.lat), lng: parseFloat(el.dataset.lng) };
+        }
+        return null;
+    };
+
     // Weekday Last Mile
     const workVal = document.getElementById('settingWorkStation').value;
     state.settings.workLastMile.name = workVal;
     state.settings.workLastMile.trans = inferType(workVal);
+    state.settings.workLastMile.coords = getCoords('settingWorkStation');
 
     const homeVal = document.getElementById('settingHomeStation').value;
     state.settings.homeLastMile.name = homeVal;
     state.settings.homeLastMile.trans = inferType(homeVal);
+    state.settings.homeLastMile.coords = getCoords('settingHomeStation');
 
     // Holiday
     if (!state.settings.holiday) state.settings.holiday = JSON.parse(JSON.stringify(DEFAULT_SETTINGS.holiday));
@@ -334,11 +361,13 @@ function saveSettings() {
     // Default en-route logic for holiday (since UI removed)
     state.settings.holiday.oldHomeTrans = ['train', 'mrt', 'bus', 'bike'];
     state.settings.holiday.oldHomeLastMile.trans = inferType(oldHomeVal);
+    state.settings.holiday.oldHomeLastMile.coords = getCoords('settingOldHomeStation');
 
     const holHomeVal = document.getElementById('settingHolidayHomeStation').value;
     state.settings.holiday.homeLastMile.name = holHomeVal;
     state.settings.holiday.homeTrans = ['train', 'mrt', 'bus', 'bike'];
     state.settings.holiday.homeLastMile.trans = inferType(holHomeVal);
+    state.settings.holiday.homeLastMile.coords = getCoords('settingHolidayHomeStation');
 
     saveState();
     checkKeyStatus();
@@ -690,7 +719,17 @@ function selectLastMileStation(item, type) {
         // For custom, maybe we don't want the (Type) suffix?
         // User might want just the name. But validation handles "Name (Type)" fine usually.
         // Let's use formatted name for clarity.
-        document.getElementById(inputId).value = formattedName;
+        const el = document.getElementById(inputId);
+        el.value = formattedName;
+        // Store Coords in dataset for saving
+        if (item.lat && item.lng) {
+            el.dataset.lat = item.lat;
+            el.dataset.lng = item.lng;
+        } else {
+            // Clear if none
+            delete el.dataset.lat;
+            delete el.dataset.lng;
+        }
     }
     closeModal('stationModal');
     // openSettings(); // Do not reload settings

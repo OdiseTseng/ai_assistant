@@ -186,6 +186,21 @@
                                     style="white-space:nowrap; width:auto;">📂 選擇站點</button>
                             </div>
 
+                            <!-- Traffic Preferences (Moved Here) -->
+                            <div
+                                style="display: flex; gap: 15px; flex-wrap: wrap; padding: 5px; background: rgba(255,255,255,0.05); border-radius: 4px;">
+                                <label style="cursor:pointer; display:flex; align-items:center; gap:5px;"><input
+                                        type="checkbox" id="prefTrain"> 🚆 火車</label>
+                                <label style="cursor:pointer; display:flex; align-items:center; gap:5px;"><input
+                                        type="checkbox" id="prefMRT"> 🚇 捷運</label>
+                                <label style="cursor:pointer; display:flex; align-items:center; gap:5px;"><input
+                                        type="checkbox" id="prefBus"> 🚌 公車</label>
+                                <label style="cursor:pointer; display:flex; align-items:center; gap:5px;"><input
+                                        type="checkbox" id="prefBike"> 🚲 YouBike</label>
+                                <label style="cursor:pointer; display:flex; align-items:center; gap:5px;"><input
+                                        type="checkbox" id="prefWalk"> 🚶 步行</label>
+                            </div>
+
                             <button id="sendBtnCustom" onclick="handleCustomRoute()" class="btn-primary"
                                 style="background: linear-gradient(135deg, #a855f7, #6366f1);">
                                 📍 驗證並規劃路線
@@ -199,36 +214,32 @@
                         </div>
                     </div>
 
-                    <!-- Section Title: Favorite Stations (Optional for Custom?) -->
-                    <div style="grid-column: 1 / -1; margin-top: 10px;">
-                        <h2>喜好站點</h2>
-                    </div>
-
+                    <!-- Restored Station Blocks (Empty, no favorites) -->
                     <!-- Section 2: Train -->
                     <div class="card">
-                        <h2>🚄 火車 <button class="btn-add" onclick="openStationModal('train')">+</button></h2>
-                        <div id="train-list-3" class="station-list"></div>
+                        <h2>🚄 火車</h2>
+                        <div id="train-list-custom" class="station-list"></div>
                         <div id="train-result-3" class="result-box"></div>
                     </div>
 
                     <!-- Section 3: MRT -->
                     <div class="card">
-                        <h2>捷運 <button class="btn-add" onclick="openStationModal('mrt')">+</button></h2>
-                        <div id="mrt-list-3" class="station-list"></div>
+                        <h2>捷運</h2>
+                        <div id="mrt-list-custom" class="station-list"></div>
                         <div id="mrt-result-3" class="result-box"></div>
                     </div>
 
                     <!-- Section 3: Bus -->
                     <div class="card">
-                        <h2>🚌 公車 <button class="btn-add" onclick="openStationModal('bus')">+</button></h2>
-                        <div id="bus-list-3" class="station-list"></div>
+                        <h2>🚌 公車</h2>
+                        <div id="bus-list-custom" class="station-list"></div>
                         <div id="bus-result-3" class="result-box"></div>
                     </div>
 
                     <!-- Section 4: Bike -->
                     <div class="card">
-                        <h2>🚲 YouBike <button class="btn-add" onclick="openStationModal('bike')">+</button></h2>
-                        <div id="bike-list-3" class="station-list"></div>
+                        <h2>🚲 YouBike</h2>
+                        <div id="bike-list-custom" class="station-list"></div>
                         <div id="bike-result-3" class="result-box"></div>
                     </div>
                 </div>
@@ -486,6 +497,11 @@
                 </div>
                 <div class="modal-body"
                     style="flex: 1; display: flex; flex-direction: column; overflow: hidden; gap: 10px;">
+                    <div style="flex: 1; display: flex; flex-direction: column;">
+                        <label style="color: var(--accent-color); font-weight: bold;">🌐 其他 API 查詢與回覆 (Non-AI)</label>
+                        <textarea id="debugOtherApiLog" readonly
+                            style="flex: 1; width: 100%; background: #111; color: #aaa; padding: 10px; font-family: monospace; border: 1px solid #333; resize: none; margin-bottom: 10px;"></textarea>
+                    </div>
                     <div style="flex: 1; display: flex; flex-direction: column;">
                         <label id="debugPromptLabel" style="color: var(--accent-color); font-weight: bold;">📤 Sent
                             Prompt</label>

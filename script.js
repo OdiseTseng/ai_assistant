@@ -249,6 +249,48 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// --- Preference Persistence ---
+function loadCustomPrefs() {
+    try {
+        const saved = localStorage.getItem('custom_transport_prefs');
+        if (saved) {
+            const prefs = JSON.parse(saved);
+            ['prefTrain', 'prefMRT', 'prefBus', 'prefBike', 'prefWalk'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el && prefs.hasOwnProperty(id)) {
+                    el.checked = prefs[id];
+                }
+            });
+        }
+    } catch (e) {
+        console.error("Failed to load custom prefs:", e);
+    }
+
+    // Attach listeners
+    ['prefTrain', 'prefMRT', 'prefBus', 'prefBike', 'prefWalk'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('change', saveCustomPrefs);
+        }
+    });
+}
+
+function saveCustomPrefs() {
+    const prefs = {};
+    ['prefTrain', 'prefMRT', 'prefBus', 'prefBike', 'prefWalk'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            prefs[id] = el.checked;
+        }
+    });
+    localStorage.setItem('custom_transport_prefs', JSON.stringify(prefs));
+}
+
+// Call load on DOMContentLoaded (adding to end of existing listener block logic via separate call if easier, or appending)
+// Since we are outside the listener here, let's just add another listener or call it if script runs deferred.
+// Script is defer? No, usually not. But we can just add another listener.
+document.addEventListener('DOMContentLoaded', loadCustomPrefs);
+
 // --- STATE MANAGEMENT ---
 function loadState() {
     // Stations
@@ -1018,7 +1060,7 @@ function renderItineraries(list) {
                 rawContent = i.details;
             } else if (i.steps && Array.isArray(i.steps)) {
                 // Construct HTML from Steps
-                rawContent = i.steps.map((step, idx) => {
+                let stepsHtml = i.steps.map((step, idx) => {
                     const typeIcon = {
                         walk: '🚶',
                         mrt: '🚇',
@@ -1028,26 +1070,28 @@ function renderItineraries(list) {
                         transfer: '🔄'
                     }[step.type] || '📍';
 
-                    let instruction = step.instruction || '';
-                    if (step.line_name) instruction += ` (${step.line_name})`;
+                    let instruction = step.instruction || '前往下一站';
 
-                    // Coordinates for Start/End
-                    if (step.start_location && step.start_location.latitude && step.start_location.longitude) {
-                        const sLat = step.start_location.latitude;
-                        const sLng = step.start_location.longitude;
-                        // instruction += ` (${sLat}, ${sLng})`; // Don't append raw coords, let regex handle or pre-format here?
-                        // Let's pre-format slightly to match existing regex if needed, or just append distinct links.
-                        // Actually, the existing regex expects "Name (lat, lng)". Let's append that if not present.
-                        // But cleaner is to just generate the link directly here.
+                    // Highlight line info if available
+                    if (step.line_name) {
+                        instruction = `<span style="color:#fbbf24; font-weight:bold;">[${step.line_name}]</span> ` + instruction;
                     }
 
-                    return `${idx + 1}. ${typeIcon} ${instruction}`;
-                }).join('\n'); // Use newline to let regex handle <br> replacement or do it here?
-                // The regex below handles line breaks based on digit-dot-space.
+                    return `
+                    <div style="display:flex; gap:10px; margin-bottom:8px; line-height:1.4;">
+                        <span style="font-size:1.2em;">${typeIcon}</span>
+                        <div>
+                            <span style="font-weight:bold; color:#ddd;">Step ${idx + 1}</span><br>
+                            <span style="color:#bbb;">${instruction}</span>
+                        </div>
+                    </div>`;
+                }).join('');
+
+                rawContent = stepsHtml;
 
                 // Append Summary if available
                 if (i.summary) {
-                    rawContent += `\n\n📝 總結: ${i.summary}`;
+                    rawContent += `<div style="margin-top:10px; padding-top:10px; border-top:1px dashed #444; color:#94a3b8;">📝 ${i.summary}</div>`;
                 }
             } else if (i.summary) {
                 rawContent = i.summary;
@@ -1147,6 +1191,74 @@ function handleSend(overrideMode = null) {
 }
 
 // --- CUSTOM ROUTE ---
+// --- DEBUG HELPER ---
+function logDebugOther(query, response, source = "API") {
+    const el = document.getElementById('debugOtherApiLog');
+    if (!el) return;
+
+    const time = new Date().toLocaleTimeString();
+    const entry = `[${time}] [${source}]\nQ: ${query}\nA: ${typeof response === 'object' ? JSON.stringify(response, null, 2) : response}\n----------------------------------------\n`;
+
+    // Prepend (newest first)
+    el.value = entry + el.value;
+}
+
+// --- CUSTOM ROUTE ---
+async function searchLocationNominatim(query) {
+    try {
+        // Use a generic user agent to be polite, though browser fetch handles it.
+        // Bounding box for Taiwan roughly: 119, 21, 122, 26 (approx)
+        // or just restrict to countrycodes=tw
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=tw`;
+
+        // Log Query
+        logDebugOther(url, "Requesting...", "Nominatim");
+
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Map Service Unavailable");
+
+        const data = await res.json();
+
+        // Log Response
+        logDebugOther(url, data, "Nominatim");
+
+        if (data && data.length > 0) {
+            const place = data[0];
+            return {
+                valid: true,
+                formatted_name: place.display_name,
+                lat: parseFloat(place.lat),
+                lng: parseFloat(place.lon), // Nominatim uses 'lon'
+                source: 'OSM/Nominatim'
+            };
+        }
+    } catch (e) {
+        console.warn("Nominatim search failed:", e);
+        logDebugOther(query, "Error: " + e.message, "Nominatim");
+    }
+    return null; // Not found or error
+}
+
+async function verifyLocationAI(dest, key) {
+    const verifyPrompt = `請驗證地點「${dest}」是否為台灣真實存在的地點或地標。
+    如果是，請提供它的精確經緯度。
+    回傳 JSON: { "valid": true, "formatted_name": "完整名稱", "lat": 25.xxx, "lng": 121.xxx }
+    如果不存在或不明確，回傳 { "valid": false, "reason": "原因" }`;
+
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: verifyPrompt }] }] })
+    });
+    const data = await res.json();
+    const text = data.candidates[0].content.parts[0].text;
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    const json = jsonMatch ? JSON.parse(jsonMatch[0]) : { valid: false };
+
+    if (json.valid) json.source = 'AI_Verify';
+    return json;
+}
+
 function handleCustomRoute() {
     const input = document.getElementById('customDestInput');
     const dest = input.value.trim();
@@ -1160,71 +1272,73 @@ function handleCustomRoute() {
 
     if (btn) btn.disabled = true;
     if (status) {
-        status.innerText = "🔍 指令 Gemini 驗證地點中...";
+        status.innerText = "🔍 搜尋地圖資料中...";
         status.style.color = "var(--accent-color)";
     }
 
-    // 1. Verify Location using AI
-    const verifyPrompt = `請驗證地點「${dest}」是否為台灣真實存在的地點或地標。
-    如果是，請提供它的精確經緯度。
-    回傳 JSON: { "valid": true, "formatted_name": "完整名稱", "lat": 25.xxx, "lng": 121.xxx }
-    如果不存在或不明確，回傳 { "valid": false, "reason": "原因" }`;
+    // Pipeline: Nominatim -> AI Fallback
+    (async () => {
+        let location = await searchLocationNominatim(dest);
 
-    fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: verifyPrompt }] }] })
-    })
-        .then(res => res.json())
-        .then(data => {
-            const text = data.candidates[0].content.parts[0].text;
-            const jsonMatch = text.match(/\{[\s\S]*\}/);
-            const json = jsonMatch ? JSON.parse(jsonMatch[0]) : { valid: false };
+        if (!location) {
+            if (status) status.innerText = "🤔 地圖未詳盡，轉由 AI 驗證中...";
+            location = await verifyLocationAI(dest, key);
+        }
 
-            if (!json.valid) {
-                throw new Error(json.reason || "地點驗證失敗");
-            }
+        if (!location || !location.valid) {
+            throw new Error(location ? location.reason : "找不到此地點");
+        }
 
-            // 2. Planning Route
-            if (status) status.innerText = `✅ 已確認: ${json.formatted_name}。規劃路線中...`;
+        // 2. Planning Route
+        if (status) status.innerText = `✅ 已確認: ${location.formatted_name} (${location.source === 'OSM/Nominatim' ? '地圖' : 'AI'})... 規劃中`;
 
-            // Construct Prompt
-            getGPS().then(currentPos => {
-                const timeStr = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
+        if (status) status.innerText = `✅ 已確認: ${location.formatted_name} (${location.source === 'OSM/Nominatim' ? '地圖' : 'AI'})... 規劃中`;
 
-                let prompt = `現在時間 ${timeStr}。我的位置在 ${currentPos}。`;
-                prompt += `\n我想前往：${json.formatted_name} (${json.lat}, ${json.lng})`;
+        // Construct Prompt
+        const currentPos = await getGPS();
+        const timeStr = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
 
-                // Helper to format stations (Duplicated from api_service but needed here, or accessed globally?)
-                // Since fmtStations is inside createCommutePrompt, we recreate it or make it global.
-                // Simple version here:
-                const fmt = (list) => list.map(s => `${s.name || s}${s.lat ? `(${s.lat},${s.lng})` : ''}`).join('、');
+        let prompt = `現在時間 ${timeStr}。我的位置在 ${currentPos}。`;
+        prompt += `\n我想前往：${location.formatted_name} (${location.lat}, ${location.lng})`;
 
-                prompt += `\n\n已儲存的常用站點：`;
-                if (state.train.length) prompt += `\n火車: ${fmt(state.train)}`;
-                if (state.mrt.length) prompt += `\n捷運: ${fmt(state.mrt)}`;
-                if (state.bus.length) prompt += `\n公車: ${fmt(state.bus)}`;
-                if (state.bike.length) prompt += `\nYouBike: ${fmt(state.bike)}`;
+        // --- NEW: Read Checkboxes ---
+        const prefs = [];
+        if (document.getElementById('prefTrain')?.checked) prefs.push('火車(Train)');
+        if (document.getElementById('prefMRT')?.checked) prefs.push('捷運(MRT)');
+        if (document.getElementById('prefBus')?.checked) prefs.push('公車(Bus)');
+        if (document.getElementById('prefBike')?.checked) prefs.push('公共自行車(YouBike)');
+        if (document.getElementById('prefWalk')?.checked) prefs.push('步行(Walk)');
 
-                prompt += `\n請提供最佳交通建議 (包含火車/捷運/公車/Ubike)。`;
-                prompt += `\n回傳 JSON 格式同上 (train, mrt, bus, bike, itineraries...)`;
+        const prefStr = prefs.join('、') || "無特定偏好 (請綜合評估火車、捷運、公車、YouBike、步行，提供最佳路線)";
+        prompt += `\n\n交通工具偏好: ${prefStr}`;
 
-                // Set Target
-                window.currentItineraryTarget = 'itinerary-result-custom';
+        // DO NOT include saved stations for Custom Route
 
-                callGeminiAPI(prompt, 'sendBtnCustom');
-                if (status) status.innerText = "";
-            });
+        prompt += `\n請提供最佳交通建議。`;
+        prompt += `\n請列出詳細轉乘步驟 (steps array, very important)。`;
+        prompt += `\n回傳 JSON 格式: { 
+            "itineraries": [{ 
+                "title": "方案A", 
+                "mode": "綜合", 
+                "total_duration": "45分", 
+                "steps": [{"type":"walk", "instruction":"..."}, {"type":"mrt", "instruction":"..."}] 
+            }] 
+        }`;
 
-        })
-        .catch(e => {
-            alert("錯誤: " + e.message);
-            if (status) {
-                status.innerText = "❌ " + e.message;
-                status.style.color = "var(--danger-color)";
-            }
-            if (btn) btn.disabled = false;
-        });
+        // Set Target
+        window.currentItineraryTarget = 'itinerary-result-custom';
+
+        await callGeminiAPI(prompt, 'sendBtnCustom');
+        if (status) status.innerText = "";
+
+    })().catch(e => {
+        alert("錯誤: " + e.message);
+        if (status) {
+            status.innerText = "❌ " + e.message;
+            status.style.color = "var(--danger-color)";
+        }
+        if (btn) btn.disabled = false;
+    });
 }
 
 // --- NEW: BUS SEARCH UI ---

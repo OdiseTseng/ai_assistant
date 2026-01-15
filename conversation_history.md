@@ -30,6 +30,61 @@
     - 更新 `createCommutePrompt`：在「回老家」模式下，若偵測到目前 GPS 位置距離「上班地點」或「住家」小於 2 公里，則在 Prompt 中加入建議起點提示，引導 AI 規劃更精確的路線。
 - **驗證**：建立 `walkthrough.md` 引導使用者重新儲存設定並觀察 Debug Console 以驗證座標與距離判斷功能。
 
+## 重構「想去哪」分頁：移除站點區塊與新增交通偏好
+**日期：** 2026-01-15
+**ID：** `refactor_custom_tab_preferences`
+
+**目標：**
+完全重構「想去哪」分頁的功能定位。移除該頁面中不必要的四大站點區塊 (火車/捷運/公車/YouBike)，改為提供「交通工具偏好」勾選，讓使用者針對單次行程自訂希望使用的交通方式。同時優化 AI 規劃結果的顯示，確保轉乘步驟清晰可讀。
+
+**關鍵行動：**
+- **修改 `index.html`**：
+    - 移除 `tab-custom` 中的所有站點列表與「喜好站點」標題。
+    - 新增「交通偏好」區塊 (Checkboxes: 火車、捷運、公車、YouBike、步行)。
+- **修改 `script.js`**：
+    - **`handleCustomRoute`**：
+        - 讀取 UI 上的交通偏好 Checkbox 狀態。
+        - 產生 Prompt 時，**不再** 附帶已儲存的常用站點 (避免干擾單次查詢)。
+        - 在 Prompt 中明確加入「交通工具偏好」指示。
+    - **`renderItineraries`**：
+        - 優化 `steps` 陣列的渲染邏輯。
+        - 針對步驟中的 `type` 顯示對應 Icon (如 🚇, 🚌)。
+        - 若有 `line_name` (如 [淡水信義線]) 則以黃色高亮顯示。
+
+- **修正與還原**：
+    - **UI 調整**：應要求將 `tab-custom` 的「四大區塊」結構還原 (保留區塊但不顯示「喜好站點」內容與標題)。
+    - **位置變更**：「交通偏好」勾選區塊移動至「選擇站點」與「驗證並規劃」按鈕之間。
+    - **狀態記憶**：實作 `loadCustomPrefs` 與 `saveCustomPrefs`，讓使用者的交通偏好選擇可被記憶 (預設不勾選)。
+    - **邏輯優化**：若使用者未勾選任何交通方式，Prompt 會明確指示「請綜合評估火車、捷運、公車、YouBike、步行，提供最佳路線」。
+
+## 新增非 AI API 查詢記錄 (Debug Console)
+**日期：** 2026-01-15
+**ID：** `add_non_ai_debug_logs`
+
+**目標：**
+在 Debug Console 增加專屬區域，用於顯示非 AI 的 API 查詢記錄（如 Nominatim 地圖搜尋），方便開發者與使用者檢視原始請求與回覆。
+
+**關鍵行動：**
+- **修改 `index.html`**：在 Debug Modal 中新增「🌐 其他 API 查詢與回覆 (Non-AI)」文字框。
+- **修改 `script.js`**：
+    - 實作 `logDebugOther(query, response, source)` 函數。
+    - 在 `searchLocationNominatim` (及潛在的 YouBike 搜尋) 中加入 logging 呼叫，將 URL 與 JSON 回傳結果寫入新的 Debug 區域。
+
+## 實作地圖優先查詢 (Nominatim)
+**日期：** 2026-01-15
+**ID：** `impl_nominatim_search`
+
+**目標：**
+回應使用者需求，將「想去哪」的地點驗證流程改為優先使用 **資料庫地圖搜尋 (Google Map-like)**，而非完全依賴 AI。
+
+**關鍵行動：**
+- **修改 `script.js`**：
+    - 新增 `searchLocationNominatim(query)` 函數，呼叫 OpenStreetMap (Nominatim) API 進行地點搜尋。
+    - 重構 `handleCustomRoute`：採用 **Pipeline 模式**。
+        1.  先嘗試 `Nominatim` 搜尋 (顯示 `🔍 搜尋地圖資料中...`)。
+        2.  若有結果，直接顯示 `✅ 已確認: ... (地圖)` 並進入路線規劃。
+        3.  若無結果 (return null)，自動 Fallback 至原有的 `verifyLocationAI` (顯示 `🤔 地圖未詳盡，轉由 AI 驗證中...`)。
+
 ## 實作自動分頁切換 (平日/假日邏輯)
 **日期：** 2026-01-15
 **ID：** `impl_auto_tab_switch`

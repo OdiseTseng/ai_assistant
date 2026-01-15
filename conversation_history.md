@@ -57,7 +57,18 @@
     - **狀態記憶**：實作 `loadCustomPrefs` 與 `saveCustomPrefs`，讓使用者的交通偏好選擇可被記憶 (預設不勾選)。
     - **邏輯優化**：若使用者未勾選任何交通方式，Prompt 會明確指示「請綜合評估火車、捷運、公車、YouBike、步行，提供最佳路線」。
 
-## 新增非 AI API 查詢記錄 (Debug Console)
+## 搜尋功能增強與除錯優化 (Location Search & Debug)
+**日期：** 2026-01-15
+**ID：** `enhance_search_debug`
+- **問題**：Debug Console 未完整顯示地圖搜尋的關鍵字與結果；且當搜尋結果有多筆時，系統僅自動選取第一筆，可能不符使用者需求。
+- **解決方案**：
+    - **多結果選擇**：修改 `index.html` 新增「地點選擇視窗」 (`locationSelectModal`)。
+    - **邏輯更新**：`searchLocationNominatim` 現在會回傳最多 10 筆結果。若有多筆結果，`handleCustomRoute` 會彈出清單供使用者選擇正確地點。
+    - **除錯日誌修復**：修正 `script.js` 中的 `logDebugOther` 呼叫，確保能完整記錄搜尋的 URL (Query) 與 API 回傳的完整 JSON 資料 (Response)。
+    - **Bug 修復**：補上遺失的通用視窗控制函式 `openModal` 與 `closeModal`，解決選擇地點視窗無法開啟的問題。
+    - **區塊資料連動**：更新 Prompt 指令與結果處理邏輯，確保 AI 在規劃路線時，也能同步回傳分類好的站點資訊 (stations object)，並填入下方的四大區塊 (火車/捷運/公車/YouBike)。
+    - **語系設定**：在 Nominatim 搜尋請求中加入 `accept-language=zh-TW` 參數，確保搜尋結果預設顯示繁體中文。
+    - **API 回傳修復**：修正 `callGeminiAPI` (api_service.js) 沒有正確回傳 JSON 物件的問題，解決了「想去哪」Tab 搜尋後，下方四大區塊 (捷運/火車等) 仍顯示「無建議」的錯誤。
 **日期：** 2026-01-15
 **ID：** `add_non_ai_debug_logs`
 

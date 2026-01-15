@@ -719,6 +719,28 @@ function getMapLinkHtml(name, lat, lng, text) {
     return `<a href="${url}" target="_blank" style="text-decoration:none; color:inherit; cursor:pointer; display:inline;" onclick="event.stopPropagation()">${content}</a>`;
 }
 
+// --- HELPER: MODAL CONTROL ---
+function openModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) {
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) {
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+}
+
+// Ensure global scope for HTML onclick
+window.openModal = openModal;
+window.closeModal = closeModal;
+
+
 function renderGrid(items) {
     const grid = document.getElementById('modalGrid');
     grid.innerHTML = '';
@@ -1206,13 +1228,12 @@ function logDebugOther(query, response, source = "API") {
 // --- CUSTOM ROUTE ---
 async function searchLocationNominatim(query) {
     try {
-        // Use a generic user agent to be polite, though browser fetch handles it.
-        // Bounding box for Taiwan roughly: 119, 21, 122, 26 (approx)
-        // or just restrict to countrycodes=tw
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=tw`;
+        // Increase limit to 10 to get diverse options
+        // Added accept-language=zh-TW to prefer Traditional Chinese
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=10&countrycodes=tw&accept-language=zh-TW`;
 
         // Log Query
-        logDebugOther(url, "Requesting...", "Nominatim");
+        logDebugOther(url, "Requesting...", "Nominatim (Map)");
 
         const res = await fetch(url);
         if (!res.ok) throw new Error("Map Service Unavailable");
@@ -1220,21 +1241,21 @@ async function searchLocationNominatim(query) {
         const data = await res.json();
 
         // Log Response
-        logDebugOther(url, data, "Nominatim");
+        logDebugOther(query, data, "Nominatim (Map)");
 
         if (data && data.length > 0) {
-            const place = data[0];
-            return {
+            // Map raw data to cleaner internal format
+            return data.map(place => ({
                 valid: true,
                 formatted_name: place.display_name,
                 lat: parseFloat(place.lat),
-                lng: parseFloat(place.lon), // Nominatim uses 'lon'
+                lng: parseFloat(place.lon),
                 source: 'OSM/Nominatim'
-            };
+            }));
         }
     } catch (e) {
         console.warn("Nominatim search failed:", e);
-        logDebugOther(query, "Error: " + e.message, "Nominatim");
+        logDebugOther(query, "Error: " + e.message, "Nominatim (Map)");
     }
     return null; // Not found or error
 }
@@ -1255,8 +1276,11 @@ async function verifyLocationAI(dest, key) {
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     const json = jsonMatch ? JSON.parse(jsonMatch[0]) : { valid: false };
 
-    if (json.valid) json.source = 'AI_Verify';
-    return json;
+    if (json.valid) {
+        json.source = 'AI_Verify';
+        return [json]; // Return as array for consistency
+    }
+    return null;
 }
 
 function handleCustomRoute() {
@@ -1278,59 +1302,28 @@ function handleCustomRoute() {
 
     // Pipeline: Nominatim -> AI Fallback
     (async () => {
-        let location = await searchLocationNominatim(dest);
+        let locations = await searchLocationNominatim(dest);
 
-        if (!location) {
+        if (!locations || locations.length === 0) {
             if (status) status.innerText = "🤔 地圖未詳盡，轉由 AI 驗證中...";
-            location = await verifyLocationAI(dest, key);
+            locations = await verifyLocationAI(dest, key);
         }
 
-        if (!location || !location.valid) {
-            throw new Error(location ? location.reason : "找不到此地點");
+        if (!locations || locations.length === 0) {
+            throw new Error("找不到此地點，請嘗試更精確的名稱");
         }
 
-        // 2. Planning Route
-        if (status) status.innerText = `✅ 已確認: ${location.formatted_name} (${location.source === 'OSM/Nominatim' ? '地圖' : 'AI'})... 規劃中`;
-
-        if (status) status.innerText = `✅ 已確認: ${location.formatted_name} (${location.source === 'OSM/Nominatim' ? '地圖' : 'AI'})... 規劃中`;
-
-        // Construct Prompt
-        const currentPos = await getGPS();
-        const timeStr = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
-
-        let prompt = `現在時間 ${timeStr}。我的位置在 ${currentPos}。`;
-        prompt += `\n我想前往：${location.formatted_name} (${location.lat}, ${location.lng})`;
-
-        // --- NEW: Read Checkboxes ---
-        const prefs = [];
-        if (document.getElementById('prefTrain')?.checked) prefs.push('火車(Train)');
-        if (document.getElementById('prefMRT')?.checked) prefs.push('捷運(MRT)');
-        if (document.getElementById('prefBus')?.checked) prefs.push('公車(Bus)');
-        if (document.getElementById('prefBike')?.checked) prefs.push('公共自行車(YouBike)');
-        if (document.getElementById('prefWalk')?.checked) prefs.push('步行(Walk)');
-
-        const prefStr = prefs.join('、') || "無特定偏好 (請綜合評估火車、捷運、公車、YouBike、步行，提供最佳路線)";
-        prompt += `\n\n交通工具偏好: ${prefStr}`;
-
-        // DO NOT include saved stations for Custom Route
-
-        prompt += `\n請提供最佳交通建議。`;
-        prompt += `\n請列出詳細轉乘步驟 (steps array, very important)。`;
-        prompt += `\n回傳 JSON 格式: { 
-            "itineraries": [{ 
-                "title": "方案A", 
-                "mode": "綜合", 
-                "total_duration": "45分", 
-                "steps": [{"type":"walk", "instruction":"..."}, {"type":"mrt", "instruction":"..."}] 
-            }] 
-        }`;
-
-        // Set Target
-        window.currentItineraryTarget = 'itinerary-result-custom';
-
-        await callGeminiAPI(prompt, 'sendBtnCustom');
-        if (status) status.innerText = "";
-
+        // --- SELECTION LOGIC ---
+        if (locations.length > 1) {
+            if (status) status.innerText = `❓ 找到 ${locations.length} 個結果，請選擇...`;
+            showLocationSelectionModal(locations, (selectedLoc) => {
+                executeCustomRoutePlan(selectedLoc);
+            });
+            if (btn) btn.disabled = false; // Re-enable for retry/cancel
+        } else {
+            // Exact match
+            executeCustomRoutePlan(locations[0]);
+        }
     })().catch(e => {
         alert("錯誤: " + e.message);
         if (status) {
@@ -1339,6 +1332,109 @@ function handleCustomRoute() {
         }
         if (btn) btn.disabled = false;
     });
+}
+
+function showLocationSelectionModal(locations, onSelect) {
+    const modal = document.getElementById('locationSelectModal');
+    const list = document.getElementById('locationSelectList');
+    if (!modal || !list) return;
+
+    list.innerHTML = ''; // Clear prev
+
+    locations.forEach(loc => {
+        const item = document.createElement('div');
+        item.style.padding = "10px";
+        item.style.border = "1px solid #444";
+        item.style.borderRadius = "4px";
+        item.style.cursor = "pointer";
+        item.style.background = "#222";
+        item.onmouseover = () => item.style.background = "#333";
+        item.onmouseout = () => item.style.background = "#222";
+
+        item.innerHTML = `
+            <div style="font-weight:bold; color:var(--accent-color);">${loc.formatted_name}</div>
+            <div style="font-size:0.8em; color:#888;">${loc.lat}, ${loc.lng} (${loc.source === 'OSM/Nominatim' ? '地圖' : 'AI'})</div>
+        `;
+        item.onclick = () => {
+            closeModal('locationSelectModal');
+            onSelect(loc);
+        };
+        list.appendChild(item);
+    });
+
+    openModal('locationSelectModal');
+}
+
+
+async function executeCustomRoutePlan(location) {
+    const btn = document.getElementById('sendBtnCustom');
+    const status = document.getElementById('custom-status');
+
+    if (btn) btn.disabled = true;
+
+    // 2. Planning Route
+    if (status) status.innerText = `✅ 已確認: ${location.formatted_name} (${location.source === 'OSM/Nominatim' ? '地圖' : 'AI'})... 規劃中`;
+
+    // Construct Prompt
+    const currentPos = await getGPS();
+    const timeStr = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+    let prompt = `現在時間 ${timeStr}。我的位置在 ${currentPos}。`;
+    prompt += `\n我想前往：${location.formatted_name} (${location.lat}, ${location.lng})`;
+
+    // --- NEW: Read Checkboxes ---
+    const prefs = [];
+    if (document.getElementById('prefTrain')?.checked) prefs.push('火車(Train)');
+    if (document.getElementById('prefMRT')?.checked) prefs.push('捷運(MRT)');
+    if (document.getElementById('prefBus')?.checked) prefs.push('公車(Bus)');
+    if (document.getElementById('prefBike')?.checked) prefs.push('公共自行車(YouBike)');
+    if (document.getElementById('prefWalk')?.checked) prefs.push('步行(Walk)');
+
+    const prefStr = prefs.join('、') || "無特定偏好 (請綜合評估火車、捷運、公車、YouBike、步行，提供最佳路線)";
+    prompt += `\n\n交通工具偏好: ${prefStr}`;
+
+    // DO NOT include saved stations for Custom Route
+
+    prompt += `\n請提供最佳交通建議。`;
+    prompt += `\n請列出詳細轉乘步驟 (steps array, very important)。`;
+    prompt += `\n同時請將經過的重要站點資訊分類填入 "stations" 物件中，用於顯示於下方的四大區塊。`;
+    prompt += `\n回傳 JSON 格式: { 
+            "itineraries": [{ 
+                "title": "方案A", 
+                "mode": "綜合", 
+                "total_duration": "45分", 
+                "steps": [{"type":"walk", "instruction":"..."}, {"type":"mrt", "instruction":"..."}] 
+            }],
+            "stations": {
+                "train": [{"from":"台北", "to":"松山", "line":"區間快"}], 
+                "mrt": [{"from":"大安森林公園", "to":"淡水", "line":"淡水信義線"}],
+                "bus": [{"from":"A站", "to":"B站", "line":"307"}],
+                "bike": [{"from":"租借站", "to":"還車站"}]
+            }
+        }`;
+
+    // Set Target
+    window.currentItineraryTarget = 'itinerary-result-custom';
+
+    // Custom handling to parse additional "stations" data
+    try {
+        const apiRes = await callGeminiAPI(prompt, 'sendBtnCustom');
+        if (apiRes && apiRes.stations) {
+            // Render specialized blocks for Custom Tab (suffix -3 assumed by renderResult based on implementation?)
+            // Actually renderResult implementation iterates suffixes ['', '-2', '-3'].
+            // So calling it will update the custom tab blocks (-3) if the elements exist.
+            if (apiRes.stations.train) renderResult('train', apiRes.stations.train); else renderResult('train', []);
+            if (apiRes.stations.mrt) renderResult('mrt', apiRes.stations.mrt); else renderResult('mrt', []);
+            if (apiRes.stations.bus) renderResult('bus', apiRes.stations.bus); else renderResult('bus', []);
+            if (apiRes.stations.bike) renderResult('bike', apiRes.stations.bike); else renderResult('bike', []);
+        }
+    } catch (e) {
+        console.error("Custom Route Error:", e);
+        if (status) status.innerText = "❌ 發生錯誤";
+    }
+
+    if (btn) btn.disabled = false;
+    if (status) status.innerText = "";
 }
 
 // --- NEW: BUS SEARCH UI ---

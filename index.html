@@ -273,6 +273,23 @@
             </div>
         </div>
 
+        <!-- LOCATION SELECT MODAL (For Ambiguous Search Results) -->
+        <div id="locationSelectModal" class="modal-overlay">
+            <div class="modal-content sm">
+                <div class="modal-header">
+                    <h3>📍 請選擇正確地點</h3>
+                    <button onclick="closeModal('locationSelectModal')">×</button>
+                </div>
+                <div class="modal-body" style="padding: 10px;">
+                    <p style="color:#aaa; font-size:0.9em; margin-bottom:10px;">搜尋到多個結果，請選擇您想去的地方：</p>
+                    <div id="locationSelectList"
+                        style="display:flex; flex-direction:column; gap:8px; max-height:300px; overflow-y:auto;">
+                        <!-- JS populated options -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- SETTINGS MODAL -->
         <div id="settingsModal" class="modal-overlay">
             <div class="modal-content sm">

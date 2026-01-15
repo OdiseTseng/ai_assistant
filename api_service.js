@@ -307,6 +307,9 @@ async function callGeminiAPI(prompt, btnId = 'sendBtn') {
             renderItineraries(json.itineraries);
         }
 
+        return json; // Return for further processing (e.g. Custom Route stations)
+
+
     } catch (e) {
         alert("錯誤: " + e.message);
         if (typeof window.openDebugModal === 'function') {

@@ -30,7 +30,20 @@
     - 更新 `createCommutePrompt`：在「回老家」模式下，若偵測到目前 GPS 位置距離「上班地點」或「住家」小於 2 公里，則在 Prompt 中加入建議起點提示，引導 AI 規劃更精確的路線。
 - **驗證**：建立 `walkthrough.md` 引導使用者重新儲存設定並觀察 Debug Console 以驗證座標與距離判斷功能。
 
-## 儀表板分頁、假期邏輯與 Debug 功能實作
+## 修復自訂路線顯示問題 (Structured Itineraries)
+**日期：** 2026-01-15
+**ID：** `fix_custom_route_render`
+
+**目標：**
+解決「想去哪?」功能查詢（如淡水老街）時，因 AI 回傳結構化資料 (`steps` Array) 而非預期的字串 (`details`) 導致畫面顯示空白的問題。
+
+**關鍵行動：**
+- **修改 `script.js`**：更新 `renderItineraries` 函數，增加對結構化 JSON 的支援。
+    - 若 `details` 欄位不存在，自動解析 `steps` 陣列。
+    - 將 `steps` 轉換為帶有圖示 (🚶/🚇/🚌) 與行號的 HTML 清單，並保留粗體與連結格式化功能。
+    - 支援讀取 `mode` 與 `total_duration` 作為標題與時間的替代欄位。
+
+## 實作回老家智慧起點與座標修正
 **日期：** 2026-01-09
 **ID：** `dashboard_tabs_holiday_debug_impl`
 

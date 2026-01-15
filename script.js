@@ -957,31 +957,60 @@ function renderItineraries(list) {
             item.style.background = "rgba(255,255,255,0.05)";
             item.style.borderRadius = "8px";
 
-            // Add map link to title if possible? Detailed steps are text.
-            // Maybe just keep text. User asked for "Stations... add links". 
-            // Itinerary details might mention stations. It's hard to parse.
-            // I'll leave itinerary text as is, or add a generic "Map" link for the title?
-            // "Title" is usually "Option A". Not map-able.
-            // "Details" contains route. 
-            // I'll stick to the requested "Four major blocks" (Result lists) and "Stations" (Grid/Added list).
+            // Title & Time Resolution
+            const title = i.title || i.mode || '方案';
+            const time = i.time || i.total_duration || '?';
 
-            // Format details: Add line breaks before numbers (e.g. "1. ", "2. ")
-            // Format details: 
-            // 1. Line breaks before numbers (e.g. "1. ", "2. ")
-            // 2. Bold text: **text** -> <span style="...">text</span>
-            // 3. Coordinates: Name (lat, lng) -> Link
+            // Content Resolution
+            // Priority: details (string) > steps (array) > summary (string)
+            let rawContent = '';
 
-            let html = (i.details || '')
+            if (i.details) {
+                rawContent = i.details;
+            } else if (i.steps && Array.isArray(i.steps)) {
+                // Construct HTML from Steps
+                rawContent = i.steps.map((step, idx) => {
+                    const typeIcon = {
+                        walk: '🚶',
+                        mrt: '🚇',
+                        bus: '🚌',
+                        train: '🚆',
+                        bike: '🚲',
+                        transfer: '🔄'
+                    }[step.type] || '📍';
+
+                    let instruction = step.instruction || '';
+                    if (step.line_name) instruction += ` (${step.line_name})`;
+
+                    // Coordinates for Start/End
+                    if (step.start_location && step.start_location.latitude && step.start_location.longitude) {
+                        const sLat = step.start_location.latitude;
+                        const sLng = step.start_location.longitude;
+                        // instruction += ` (${sLat}, ${sLng})`; // Don't append raw coords, let regex handle or pre-format here?
+                        // Let's pre-format slightly to match existing regex if needed, or just append distinct links.
+                        // Actually, the existing regex expects "Name (lat, lng)". Let's append that if not present.
+                        // But cleaner is to just generate the link directly here.
+                    }
+
+                    return `${idx + 1}. ${typeIcon} ${instruction}`;
+                }).join('\n'); // Use newline to let regex handle <br> replacement or do it here?
+                // The regex below handles line breaks based on digit-dot-space.
+
+                // Append Summary if available
+                if (i.summary) {
+                    rawContent += `\n\n📝 總結: ${i.summary}`;
+                }
+            } else if (i.summary) {
+                rawContent = i.summary;
+            }
+
+            // Apply Formatting (Bold, Links, Line Breaks)
+            let html = (rawContent || '')
                 // Line breaks: Match "digits + dot + space" to avoid breaking coordinates (e.g. 25.04)
                 .replace(/(\d+\.\s)/g, '<br>$1')
                 // Bold text
                 .replace(/\*\*(.*?)\*\*/g, '<span style="color:var(--accent-color); font-weight:bold;">$1</span>')
                 // Coordinates Link: Name (lat, lng)
-                // Logic: Extract Name, Check for Prepositions, Return Prefix + Link(Name)
-                // This hides the raw coordinates from display.
-                // Coordinates Link: Name (lat, lng)
-                // Use broad match but avoid eating previous HTML tags (like </span>)
-                // Match anything that isn't punctuation or HTML tags basically.
                 .replace(/([^\:：，,。;；<>\n]+)\s*\(\s*(\d+\.\d+)\s*,\s*(\d+\.\d+)\s*\)/g, (match, text, lat, lng) => {
                     let cleanText = text.trim();
                     let preText = "";
@@ -991,7 +1020,6 @@ function renderItineraries(list) {
                     cleanText = cleanText.replace(/^[:：,，\.\s]+/, '');
 
                     // Common prepositions to split out of the link
-                    // Use LAST occurrence to handle cases like "Walk from A to B" where match captures "from A to B"
                     const prepositions = ['從', '至', '往', '到', '在'];
                     let lastPrepIndex = -1;
                     let matchedPrep = "";
@@ -1010,15 +1038,13 @@ function renderItineraries(list) {
                         cleanText = cleanText.substring(lastPrepIndex + matchedPrep.length).trim();
                     }
 
-                    // Return: PreText + Prefix + Link(CleanName)
-                    // Wrap CleanName in <b> for bold display as requested
                     return `${preText}${prefix}${getMapLinkHtml(cleanText, lat, lng, `<b>${cleanText}</b>`)}`;
                 });
 
             const formattedDetails = html;
 
             item.innerHTML = `
-                <div style="color:var(--accent-color); font-weight:bold; margin-bottom:5px;">${i.title || '方案'} <span style="float:right; font-size:0.9em; color:#fff;">⏱ ${i.time || '?'}</span></div>
+                <div style="color:var(--accent-color); font-weight:bold; margin-bottom:5px;">${title} <span style="float:right; font-size:0.9em; color:#fff;">⏱ ${time}</span></div>
                 <div style="font-size:0.9em; color:#ddd; line-height: 1.6;">${formattedDetails}</div>
             `;
             div.appendChild(item);

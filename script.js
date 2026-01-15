@@ -180,6 +180,55 @@ document.addEventListener('DOMContentLoaded', () => {
         // Auto-open settings if incomplete
         checkSettingsAndPrompt();
 
+        // --- AUTO TAB SWITCH LOGIC ---
+        // Requirement:
+        // 1. If Holiday -> Default to 'custom' (想去哪)
+        // 2. If Weekday:
+        //    - If within 3 hours of Work/Home time -> Default to 'daily' (Daily Commute)
+        //    - Else -> Default to 'custom' (As implied by "holiday default custom" contrast, and usually idle time)
+
+        const now = new Date();
+        const isHol = isHoliday(now);
+
+        if (isHol) {
+            console.log("🌟 Holiday detected: Defaulting to Custom Tab");
+            switchDashboardTab('custom');
+        } else {
+            // Weekday
+            // Check if near commute time (using getCommuteMode logic without mode return)
+            // We can reuse getCommuteMode() but it returns strings.
+            // 'work' or 'home' implies implied proximity (logic is inside getCommuteMode)
+            // actually getCommuteMode defaults to 'home' if not work, so it's not strictly "proximity".
+            // Let's check proximity manually to be sure.
+
+            let nearCommute = false;
+            const hour = now.getHours();
+            const minutes = now.getMinutes();
+            const currentMinutes = hour * 60 + minutes;
+
+            // Check Work Time
+            if (state.settings.workTime) {
+                const [wH, wM] = state.settings.workTime.split(':').map(Number);
+                const workMins = wH * 60 + wM;
+                if (Math.abs(currentMinutes - workMins) <= 180) nearCommute = true;
+            }
+
+            // Check Home Time
+            if (state.settings.homeTime) {
+                const [hH, hM] = state.settings.homeTime.split(':').map(Number);
+                const homeMins = hH * 60 + hM;
+                if (Math.abs(currentMinutes - homeMins) <= 180) nearCommute = true;
+            }
+
+            if (nearCommute) {
+                console.log("💼 Commute Time detected: Defaulting to Daily Tab");
+                switchDashboardTab('daily');
+            } else {
+                console.log("🕒 Off-peak Weekday: Defaulting to Custom Tab");
+                switchDashboardTab('custom');
+            }
+        }
+
         // Version
         if (typeof BUILD_INFO !== 'undefined') {
             document.getElementById('versionInfo').innerText = `最後更新於 ${BUILD_INFO.time}`;

@@ -303,7 +303,6 @@ async function callGeminiAPI(prompt, btnId = 'sendBtn', renderSuffix = '') {
         if (json.bike && json.bike.length > 0) {
             await fetchYouBikeData(true); // Force refresh
         }
-
         // Render Results (Core logic function, assumed to be global or passed)
         if (typeof renderResult === 'function') {
             // Handle potential nesting under 'stations' (AI inconsistency)
@@ -318,6 +317,8 @@ async function callGeminiAPI(prompt, btnId = 'sendBtn', renderSuffix = '') {
             renderItineraries(json.itineraries);
         }
 
+        if (typeof updateGlobalStatus === 'function') updateGlobalStatus("規劃完成", 'success');
+
         return json; // Return for further processing (e.g. Custom Route stations)
 
 
@@ -327,6 +328,7 @@ async function callGeminiAPI(prompt, btnId = 'sendBtn', renderSuffix = '') {
         } else {
             alert("錯誤: " + e.message);
         }
+        if (typeof updateGlobalStatus === 'function') updateGlobalStatus("查詢失敗: " + e.message, 'error');
         if (typeof window.openDebugModal === 'function') {
             window.openDebugModal();
         }

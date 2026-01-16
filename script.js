@@ -3,20 +3,30 @@
 
 // --- STATE ---
 const DEFAULT_SETTINGS = {
-    apiKey: "",
-    workTime: "09:00",
-    homeTime: "18:00",
-    workTrans: ["train", "mrt", "bus", "bike"],
-    homeTrans: ["train", "mrt", "bus", "bike"],
-    workLastMile: { name: "", trans: [], coords: null },
-    homeLastMile: { name: "", trans: [], coords: null },
+    apiKey: '',
+    workLastMile: { type: 'walk', name: '' },
+    homeLastMile: { type: 'walk', name: '' },
+    workTime: '09:00',
+    homeTime: '18:00',
+    homeTrans: { train: true, mrt: true, bus: true, bike: true, walk: true },
+    workTrans: { train: true, mrt: true, bus: true, bike: true, walk: true },
     holiday: {
-        oldHomeLastMile: { name: "", trans: [], coords: null },
-        homeLastMile: { name: "", trans: [], coords: null },
-        oldHomeTrans: ["train", "mrt", "bus", "bike"],
-        homeTrans: ["train", "mrt", "bus", "bike"]
+        oldHomeLastMile: { type: 'walk', name: '' }
     }
 };
+
+// --- GLOBAL STATUS ---
+function updateGlobalStatus(msg, type = 'normal') {
+    const el = document.getElementById('statusText');
+    if (!el) return;
+    el.innerText = `狀態：${msg}`;
+
+    // Color coding
+    if (type === 'busy') el.style.color = 'var(--accent-color)'; // Blue/Cyan
+    else if (type === 'error') el.style.color = 'var(--danger-color)'; // Red
+    else if (type === 'success') el.style.color = 'var(--success-color)'; // Green
+    else el.style.color = '#94a3b8'; // Default Grey
+}
 
 const state = {
     train: [], // Loaded in init
@@ -46,12 +56,17 @@ function switchDashboardTab(tab) {
     const target = document.getElementById(`tab-${tab}`);
     if (target) {
         target.classList.add('active');
+    } else {
+        console.warn(`Tab content not found: tab-${tab}`);
     }
 
     // Refresh stations if needed
     if (tab === 'oldHome' || tab === 'daily') {
-        setTimeout(renderAllStations, 0);
+        renderAllStations();
     }
+
+    // Reset Status on Tab Switch
+    updateGlobalStatus("等待查詢...", 'normal');
 }
 
 // --- HELPER: TIME LOGIC ---
@@ -973,9 +988,6 @@ function checkKeyStatus() {
         if (btn) {
             if (!key) {
                 btn.disabled = true;
-                // Only change text for the main button or all?
-                // Let's keep original text logic or simple override.
-                // For simplicity:
                 if (id === 'sendBtn') btn.innerText = "❌ 請先設定 API Key";
                 btn.style.background = "#333";
             } else {
@@ -985,6 +997,12 @@ function checkKeyStatus() {
             }
         }
     });
+
+    if (!key) {
+        updateGlobalStatus("無法查詢 (請先設定 API Key)", 'error');
+    } else {
+        updateGlobalStatus("等待查詢...", 'normal');
+    }
 }
 
 function checkSettingsAndPrompt() {
@@ -1288,6 +1306,7 @@ function handleSend(overrideMode = null) {
         const btnId = (overrideMode === 'old_home') ? 'sendBtnOldHome' : 'sendBtn';
 
         resetDashboardResults(suffix); // Clear previous results
+        updateGlobalStatus("正在查詢路線與站點資訊...", 'busy');
 
         callGeminiAPI(prompt, btnId, suffix);
     });
@@ -1500,6 +1519,7 @@ async function executeCustomRoutePlan(location) {
     // Custom handling to parse additional "stations" data
     try {
         resetDashboardResults('-3'); // Clear previous results
+        updateGlobalStatus("正在規劃客製化路線...", 'busy');
 
         const apiRes = await callGeminiAPI(prompt, 'sendBtnCustom', '-3'); // Pass '-3' for Custom Tab
         if (apiRes && apiRes.stations) {

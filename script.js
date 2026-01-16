@@ -663,7 +663,13 @@ function getGPS() {
                 saveState(); // Persist to localStorage
                 resolve(loc);
             },
-            (err) => resolve("GPS失敗")
+            (err) => {
+                console.warn("GPS Error:", err);
+                if (err.code === err.PERMISSION_DENIED) {
+                    alert("⚠️ 無法取得位置權限\n\n系統偵測到您封鎖了 GPS 定位。\n請點擊瀏覽器網址列左側的「鎖頭」或「設定」圖示，\n將「位置」權限改為「允許」後重新嘗試。");
+                }
+                resolve("GPS失敗");
+            }
         );
     });
 }

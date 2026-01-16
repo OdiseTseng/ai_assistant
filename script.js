@@ -1005,19 +1005,66 @@ function clearSearch() {
 
 function checkKeyStatus() {
     const key = state.settings.apiKey;
-    const btns = ['sendBtn', 'sendBtnOldHome', 'sendBtnCustom'];
 
-    btns.forEach(id => {
+    // Default Labels
+    let labelSendBtn = "📍 根據設定取得 GPS 並查詢";
+    const labelOldHome = "📍 回家囉";
+    const labelCustom = "📍 驗證並規劃路線";
+
+    // Dynamic Logic for SendBtn (Work/Home)
+    try {
+        const now = new Date();
+        const hour = now.getHours();
+        const minutes = now.getMinutes();
+        const currentMinutes = hour * 60 + minutes;
+
+        // Check Work Time (3 hours buffer)
+        if (state.settings.workTime) {
+            const [wH, wM] = state.settings.workTime.split(':').map(Number);
+            const workMinutes = wH * 60 + wM;
+            if (Math.abs(currentMinutes - workMinutes) <= 180) {
+                labelSendBtn = "😩 艱難上班去"; // Hard commute
+            }
+        }
+
+        // Check Home Time (Buffer: -3 hours to +3 hours? Or just near?)
+        // Priority: If matched Work earlier, keep Work? 
+        // User likely wants Home priority in evening.
+        if (state.settings.homeTime) {
+            const [hH, hM] = state.settings.homeTime.split(':').map(Number);
+            const homeMinutes = hH * 60 + hM;
+            if (Math.abs(currentMinutes - homeMinutes) <= 180) {
+                // If overlap (e.g. short shift), decide priority? 
+                // Usually Work is morning, Home is evening. 
+                // Let's assume later time overrides earlier if both match? 
+                // Or just if it matches Home, overwrite?
+                // Given the phrasing "Happy Commute Home", likely overwrite.
+                labelSendBtn = "😃 快樂下班去"; // Happy commute
+            }
+        }
+    } catch (e) {
+        console.warn("Time calc error:", e);
+    }
+
+    const btnMap = {
+        'sendBtn': labelSendBtn,
+        'sendBtnOldHome': labelOldHome,
+        'sendBtnCustom': labelCustom
+    };
+
+    Object.keys(btnMap).forEach(id => {
         const btn = document.getElementById(id);
         if (btn) {
             if (!key) {
                 btn.disabled = true;
-                if (id === 'sendBtn') btn.innerText = "❌ 請先設定 API Key";
+                btn.innerText = "❌ 請先設定 API Key";
                 btn.style.background = "#333";
+                btn.style.cursor = "not-allowed";
             } else {
                 btn.disabled = false;
-                if (id === 'sendBtn') btn.innerText = "📍 根據設定取得 GPS 並查詢";
+                btn.innerText = btnMap[id];
                 btn.style.background = ""; // reset
+                btn.style.cursor = "pointer";
             }
         }
     });

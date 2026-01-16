@@ -16,7 +16,12 @@
 - **修改 api_service.js**：
     - 在 `callGeminiAPI` 中加入結構相容性檢查。
 - **修改 script.js** (模擬渲染)：
-    - 同步更新 `simulateRendering` 函式，使其同樣支援解析 `json.stations` 內的資料，確保開發者使用「模擬渲染」功能測試 JSON 時能得到正確結果。
+    - 同步更新 `simulateRendering` 函式，使其同樣支援解析 `json.stations` 內的資料。
+**改善使用者體驗**：
+    - 新增 `resetDashboardResults` 輔助函式，自動清除舊搜尋結果。
+    - **新增 GPS 快取機制**：
+        - 修改 `getGPS` 函式，成功獲取位置後會將經緯度儲存至 `localStorage`。
+        - 下次調用時，若快取資料未超過 30 分鐘，則直接使用快取位置，不再向瀏覽器請求權限。此舉可解決重新整理頁面後重複跳出位置請求提示的困擾。
 
 ## 修復 JSON 解析錯誤 (Render Itinerary)
 **日期：** 2026-01-16

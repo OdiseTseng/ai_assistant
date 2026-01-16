@@ -593,14 +593,37 @@ function simulateRendering() {
 }
 
 // --- GPS ---
+// --- GPS ---
 function getGPS() {
     return new Promise((resolve) => {
+        // 1. Check Cache
+        const CACHE_duration = 30 * 60 * 1000; // 30 mins
+        const now = Date.now();
+
+        if (state.lastGPS && state.lastGPS.loc && state.lastGPS.time) {
+            if (now - state.lastGPS.time < CACHE_duration) {
+                console.log("📍 Using Cached GPS:", state.lastGPS.loc);
+                resolve(state.lastGPS.loc);
+                return;
+            }
+        }
+
         if (!navigator.geolocation) {
             resolve("無GPS");
             return;
         }
+
         navigator.geolocation.getCurrentPosition(
-            (pos) => resolve(`${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`),
+            (pos) => {
+                const loc = `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
+                // Update Cache
+                state.lastGPS = {
+                    loc: loc,
+                    time: Date.now()
+                };
+                saveState(); // Persist to localStorage
+                resolve(loc);
+            },
             (err) => resolve("GPS失敗")
         );
     });
@@ -1221,6 +1244,31 @@ function updatePromptPreview() {
     preview.value = text;
 }
 
+function resetDashboardResults(suffix) {
+    const s = suffix || '';
+    // Map suffix to correct itinerary ID
+    // '' -> itinerary-result
+    // '-2' -> itinerary-result-oldHome
+    // '-3' -> itinerary-result-custom
+    let itineraryId = 'itinerary-result';
+    if (s === '-2') itineraryId = 'itinerary-result-oldHome';
+    if (s === '-3') itineraryId = 'itinerary-result-custom';
+
+    const ids = [
+        itineraryId,
+        `train-result${s}`,
+        `mrt-result${s}`,
+        `bus-result${s}`,
+        `bike-result${s}`
+    ];
+
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = '';
+    });
+}
+
+
 function handleSend(overrideMode = null) {
     const mode = overrideMode || getCommuteMode();
 
@@ -1236,9 +1284,11 @@ function handleSend(overrideMode = null) {
     const suffix = (overrideMode === 'old_home') ? '-2' : '';
 
     createCommutePrompt(mode).then(prompt => {
-        // If overriding (e.g. old_home), we might want to target a specific button for loading state?
         // simple default 'sendBtn' or 'sendBtnOldHome'
         const btnId = (overrideMode === 'old_home') ? 'sendBtnOldHome' : 'sendBtn';
+
+        resetDashboardResults(suffix); // Clear previous results
+
         callGeminiAPI(prompt, btnId, suffix);
     });
 }
@@ -1449,6 +1499,8 @@ async function executeCustomRoutePlan(location) {
 
     // Custom handling to parse additional "stations" data
     try {
+        resetDashboardResults('-3'); // Clear previous results
+
         const apiRes = await callGeminiAPI(prompt, 'sendBtnCustom', '-3'); // Pass '-3' for Custom Tab
         if (apiRes && apiRes.stations) {
             // Render specialized blocks for Custom Tab

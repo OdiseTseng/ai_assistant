@@ -827,6 +827,14 @@ function closeModal(id) {
 window.openModal = openModal;
 window.closeModal = closeModal;
 
+function toggleSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    if (sidebar) sidebar.classList.toggle('active');
+    if (overlay) overlay.classList.toggle('active');
+}
+window.toggleSidebar = toggleSidebar;
+
 
 function renderGrid(items) {
     const grid = document.getElementById('modalGrid');
@@ -1364,10 +1372,17 @@ function resetDashboardResults(suffix) {
 
 
 function handleSend(overrideMode = null) {
-    const mode = overrideMode || getCommuteMode();
+    let mode = overrideMode || getCommuteMode();
 
     if (mode === 'late_night') {
         alert("公共交通只剩下Ubike");
+    }
+
+    // [FIX] Strict Tab Isolation
+    // If exploring Daily Tab (no override), do NOT allow 'old_home' mode.
+    // Daily Tab = Work <-> Home only.
+    if (!overrideMode && mode === 'old_home') {
+        mode = 'home'; // Fallback to regular Home
     }
 
     // Determine target Itinerary ID based on mode/tab
@@ -1566,8 +1581,37 @@ async function executeCustomRoutePlan(location) {
     if (document.getElementById('prefBike')?.checked) prefs.push('公共自行車(YouBike)');
     if (document.getElementById('prefWalk')?.checked) prefs.push('步行(Walk)');
 
-    const prefStr = prefs.join('、') || "無特定偏好 (請綜合評估火車、捷運、公車、YouBike、步行，提供最佳路線)";
+    // Custom Logic for HSR & Fastest
+    const prefHSR = document.getElementById('prefHSR')?.checked;
+    const prefFastest = document.getElementById('prefFastest')?.checked;
+
+    if (prefHSR) prefs.push('高鐵(HSR)');
+
+    const prefStr = prefs.join('、') || "無特定偏好 (請綜合評估各類大眾運輸，提供最佳路線)";
     prompt += `\n\n交通工具偏好: ${prefStr}`;
+
+    if (prefFastest) {
+        prompt += `\n[重要] 請優先規劃「最快速」的方案 (時間越短越好)，即使費用較高。`;
+    }
+
+    // [User Rule]: If neither 'Fastest' nor 'HSR' is checked, explicitly IGNORE HSR.
+    if (!prefHSR && !prefFastest) {
+        prompt += `\n[限制] 請忽略使用「高鐵」的選項，僅使用其他大眾運輸工具。`;
+    }
+
+    // [User Rule]: YouBike Only Logic (Detect if mostly only Bike is checked)
+    const isUbikeOnly = document.getElementById('prefBike')?.checked &&
+        !document.getElementById('prefTrain')?.checked &&
+        !document.getElementById('prefMRT')?.checked &&
+        !document.getElementById('prefBus')?.checked &&
+        !prefHSR;
+
+    if (isUbikeOnly) {
+        prompt += `\n[特別規則] 使用者僅勾選 YouBike (及步行)。請以「YouBike 站點對站點」為核心規劃路線。`;
+        prompt += `\n[警告判定] 若預估 YouBike 騎乘時間超過 1 小時 (60分鐘)：`;
+        prompt += `\n  1. 請自動放棄純 YouBike 方案，改為提供「綜合大眾運輸」的最佳方案。`;
+        prompt += `\n  2. 務必在回傳 JSON 的 "warning" 欄位填入: "騎乘時間可能太長，已自動調整為大眾運輸方案"。`;
+    }
 
     // DO NOT include saved stations for Custom Route
 
@@ -1575,6 +1619,7 @@ async function executeCustomRoutePlan(location) {
     prompt += `\n請列出詳細轉乘步驟 (steps array, very important)。`;
     prompt += `\n同時請將經過的重要站點資訊分類填入 "stations" 物件中，用於顯示於下方的四大區塊。`;
     prompt += `\n回傳 JSON 格式: { 
+            "warning": "若有警告訊息請填寫於此 (例如上述的騎乘過久)",
             "itineraries": [{ 
                 "title": "方案A", 
                 "mode": "綜合", 
@@ -1598,6 +1643,13 @@ async function executeCustomRoutePlan(location) {
         updateGlobalStatus("正在規劃客製化路線...", 'busy');
 
         const apiRes = await callGeminiAPI(prompt, 'sendBtnCustom', '-3'); // Pass '-3' for Custom Tab
+
+        // Handle Warning
+        if (apiRes && apiRes.warning) {
+            updateGlobalStatus("⚠️ " + apiRes.warning, 'error');
+            alert("⚠️ " + apiRes.warning);
+        }
+
         if (apiRes && apiRes.stations) {
             // Render specialized blocks for Custom Tab
             // Explicitly pass '-3' suffix

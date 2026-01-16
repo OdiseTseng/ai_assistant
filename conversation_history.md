@@ -1,8 +1,37 @@
 # AI 助手對話記錄
 
-*產生日期：2026-01-14*
+*產生日期：2026-01-16*
 
 本文件作為我們對話的永久記錄，讓您可以透過同步此儲存庫，在不同機器（Windows/Mac）上存取上下文和歷史記錄。
+
+## 處理 AI 忙碌中錯誤 (503 Overloaded)
+**日期：** 2026-01-16
+**ID：** `handle_503_overloaded_and_encoding_fix`
+
+**目標：**
+優化使用者體驗，當 Gemini API 回傳 `503 Service Unavailable` 或 `Model Overloaded` 錯誤時，顯示友善的中文提示訊息。並修復 PowerShell 更新對話記錄時造成的編碼錯誤。
+
+**關鍵行動：**
+- **修改 api_service.js**：
+    - 在 API 回傳錯誤時檢查 `503` 代碼或 `overloaded` 關鍵字。
+    - 顯示自訂錯誤訊息：「AI現正忙碌中，請稍後再試一次」。
+- **修正文件編碼**：
+    - 捨棄 PowerShell `Set-Content` 方式，改由 Agent 直接讀寫檔案以確保 UTF-8 編碼正確，解決亂碼問題。
+
+## 搜尋結果分頁隔離
+**日期：** 2026-01-15
+**ID：** `isolate_search_results_by_tab`
+
+**目標：**
+修正搜尋結果在不同分頁（日常通勤、回老家、想去哪）間互相汙染的問題，確保搜尋結果僅顯示在當前操作的分頁。
+
+**關鍵行動：**
+- **修改 script.js**：
+    - 更新 `renderResult` 函數，新增 `targetSuffix` 參數，不再一次更新所有容器。
+    - 更新 `handleSend` (傳遞 `-2` 給老家) 與 `handleCustomRoute` (傳遞 `-3`)。
+    - 更新 `simulateRendering` 邏輯，依據 `currentDashboardTab` 自動判斷渲染目標。
+- **修改 api_service.js**：
+    - 更新 `callGeminiAPI`，支援 `renderSuffix` 參數並透傳給 `renderResult`。
 
 ## 詢問中文支援能力
 **日期：** 2026-01-14
@@ -270,12 +299,6 @@
     - 增加程式邏輯，自動清除地名前的標點符號 (如 `:`) 與空白。
     - **加粗顯示**：將轉換後的連結文字以 `<b>` 標籤包裹，使其更顯眼。
 
-## 作 Debug 模擬渲染功能
-
-## 作 Debug 模擬渲染功能
-
-## 作 Debug 模擬渲染功能
-
 ## 增強 Debug 模擬渲染邏輯
 **日期：** 2026-01-08
 **ID：** `enhance_debug_simulation`
@@ -287,8 +310,6 @@
 - **修改 script.js**：更新 `simulateRendering` 函數，加入邏輯判斷：
     - 若輸入為原始 API 回應結構，自動提取 `candidates[0].content.parts[0].text`。
     - 若文字包含 Markdown 程式碼區塊 (```json ... ```)，自動提取內部 JSON。
-
-## 實作 Debug 模擬渲染功能
 
 ## 實作 Debug 模擬渲染功能
 **日期：** 2026-01-08
@@ -305,8 +326,6 @@
     - 實作 `simulateRendering()` 函數，解析輸入的 JSON 並依序呼叫 `renderResult` 與 `renderItineraries`。
 
 ## 格式化行程細節顯示
-
-## 格式化行程細節顯示
 **日期：** 2026-01-08
 **ID：** `format_itinerary_details`
 
@@ -319,8 +338,6 @@
     - `Name (lat, lng)` -> 轉換為 Google Maps 連結 (`getMapLinkHtml`)。
 
 ## 還原 AI 模型為 2.5 Flash
-
-## 還原 AI 模型為 2.5 Flash
 **日期：** 2026-01-08
 **ID：** `revert_model_to_2_5_flash`
 
@@ -329,8 +346,6 @@
 
 **關鍵行動：**
 - **修改 api_service.js**：將所有 `gemini-2.5-flash-lite` 替換為 `gemini-2.5-flash`。
-
-## 修正 Station Tag 高度問題
 
 ## 修正 Station Tag 高度問題
 **日期：** 2026-01-08
@@ -343,8 +358,6 @@
 - **修改 style.css**：在 `.station-tag` 中加入 `height: fit-content;`。
 
 ## 修正站點名稱重複顯示問題
-
-## 修正站點名稱重複顯示問題
 **日期：** 2026-01-08
 **ID：** `fix_duplicate_station_names_render_result`
 
@@ -354,8 +367,6 @@
 **關鍵行動：**
 - **修改 script.js**：移除 `renderResult` 中冗餘的 `${t.from}` / `${t.to}` / `${name}` 變數，因 `getMapLinkHtml` 已包含名稱。
 - **清理程式碼**：移除 `script.js` 中重複定義的舊版 `renderResult` 函數。
-
-## 修改 AI 模型為 2.5 Flash Lite
 
 ## 修改 AI 模型為 2.5 Flash Lite
 **日期：** 2026-01-08

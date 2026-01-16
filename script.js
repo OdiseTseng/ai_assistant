@@ -1364,10 +1364,17 @@ function resetDashboardResults(suffix) {
 
 
 function handleSend(overrideMode = null) {
-    const mode = overrideMode || getCommuteMode();
+    let mode = overrideMode || getCommuteMode();
 
     if (mode === 'late_night') {
         alert("公共交通只剩下Ubike");
+    }
+
+    // [FIX] Strict Tab Isolation
+    // If exploring Daily Tab (no override), do NOT allow 'old_home' mode.
+    // Daily Tab = Work <-> Home only.
+    if (!overrideMode && mode === 'old_home') {
+        mode = 'home'; // Fallback to regular Home
     }
 
     // Determine target Itinerary ID based on mode/tab

@@ -193,6 +193,15 @@
                             <!-- Traffic Preferences (Moved Here) -->
                             <div
                                 style="display: flex; gap: 15px; flex-wrap: wrap; padding: 5px; background: rgba(255,255,255,0.05); border-radius: 4px;">
+                                <!-- SPECIAL OPTIONS -->
+                                <label
+                                    style="cursor:pointer; display:flex; align-items:center; gap:5px; color:#fbbf24; font-weight:bold;"><input
+                                        type="checkbox" id="prefFastest"> ⚡ 最速方案</label>
+                                <label
+                                    style="cursor:pointer; display:flex; align-items:center; gap:5px; color:#f472b6;"><input
+                                        type="checkbox" id="prefHSR"> 🚄 高鐵</label>
+
+                                <!-- STANDARD OPTIONS -->
                                 <label style="cursor:pointer; display:flex; align-items:center; gap:5px;"><input
                                         type="checkbox" id="prefTrain"> 🚆 火車</label>
                                 <label style="cursor:pointer; display:flex; align-items:center; gap:5px;"><input
@@ -203,6 +212,8 @@
                                         type="checkbox" id="prefBike"> 🚲 YouBike</label>
                                 <label style="cursor:pointer; display:flex; align-items:center; gap:5px;"><input
                                         type="checkbox" id="prefWalk"> 🚶 步行</label>
+                                style="cursor:pointer; display:flex; align-items:center; gap:5px; color:#fbbf24;
+                                font-weight:bold;"><input type="checkbox" id="prefFastest"> ⚡ 最速方案</label>
                             </div>
 
                             <button id="sendBtnCustom" onclick="handleCustomRoute()" class="btn-primary"

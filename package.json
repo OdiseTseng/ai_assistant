@@ -1,0 +1,18 @@
+{
+  "name": "odise-assistant",
+  "version": "1.0.0",
+  "description": "Odise Gemini Assistant",
+  "main": "api_service.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "keywords": [
+    "commute",
+    "assistant",
+    "gemini"
+  ],
+  "author": "Odise",
+  "license": "ISC",
+  "devDependencies": {
+  }
+}

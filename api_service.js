@@ -253,7 +253,7 @@ async function createCommutePrompt(modeOverride = null) {
     return prompt;
 }
 
-async function callGeminiAPI(prompt, btnId = 'sendBtn') {
+async function callGeminiAPI(prompt, btnId = 'sendBtn', renderSuffix = '') {
     const key = state.settings.apiKey;
     if (!key) return alert("請先設定 API Key");
 
@@ -281,6 +281,14 @@ async function callGeminiAPI(prompt, btnId = 'sendBtn') {
             window.lastDebugData.response = data;
         }
 
+        // Handle errors (e.g., 503 Overloaded)
+        if (data.error) {
+            if (data.error.code === 503 || data.error.status === 'UNAVAILABLE' || (data.error.message && data.error.message.includes('overloaded'))) {
+                throw new Error("AI現正忙碌中，請稍後再試一次");
+            }
+            throw new Error(data.error.message || "Unknown API Error");
+        }
+
         const text = data.candidates[0].content.parts[0].text;
 
 
@@ -298,10 +306,10 @@ async function callGeminiAPI(prompt, btnId = 'sendBtn') {
 
         // Render Results (Core logic function, assumed to be global or passed)
         if (typeof renderResult === 'function') {
-            renderResult('train', json.train);
-            renderResult('mrt', json.mrt);
-            renderResult('bus', json.bus);
-            renderResult('bike', json.bike);
+            renderResult('train', json.train, renderSuffix);
+            renderResult('mrt', json.mrt, renderSuffix);
+            renderResult('bus', json.bus, renderSuffix);
+            renderResult('bike', json.bike, renderSuffix);
         }
         if (typeof renderItineraries === 'function') {
             renderItineraries(json.itineraries);
@@ -311,7 +319,11 @@ async function callGeminiAPI(prompt, btnId = 'sendBtn') {
 
 
     } catch (e) {
-        alert("錯誤: " + e.message);
+        if (e.message.includes("AI現正忙碌中")) {
+            alert(e.message);
+        } else {
+            alert("錯誤: " + e.message);
+        }
         if (typeof window.openDebugModal === 'function') {
             window.openDebugModal();
         }
@@ -375,6 +387,14 @@ async function askGeminiForStations(query, type = 'bike') {
             // Debug Capture
             if (window.lastDebugData) window.lastDebugData.response = data;
 
+            // Handle errors
+            if (data.error) {
+                if (data.error.code === 503 || data.error.status === 'UNAVAILABLE' || (data.error.message && data.error.message.includes('overloaded'))) {
+                    throw new Error("AI現正忙碌中，請稍後再試一次");
+                }
+                throw new Error(data.error.message || "API Error");
+            }
+
             const text = data.candidates[0].content.parts[0].text;
             const busJsonMatch = text.match(/\{[\s\S]*\}/);
             const json = busJsonMatch ? JSON.parse(busJsonMatch[0]) : { valid: false, error: "無法解析 AI 回應" };
@@ -390,7 +410,10 @@ async function askGeminiForStations(query, type = 'bike') {
                 renderGrid(state['bus']); // Refresh Added list
             }
         } catch (e) {
-            if (grid) grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--danger-color);">❌ 錯誤: ${e.message}</div>`;
+            if (grid) {
+                const msg = e.message.includes("AI現正忙碌中") ? e.message : `錯誤: ${e.message}`;
+                grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--danger-color);">❌ ${msg}</div>`;
+            }
         }
         return;
     }
@@ -482,6 +505,14 @@ async function askGeminiForStations(query, type = 'bike') {
         // Debug Capture
         if (window.lastDebugData) window.lastDebugData.response = data;
 
+        // Handle errors
+        if (data.error) {
+            if (data.error.code === 503 || data.error.status === 'UNAVAILABLE' || (data.error.message && data.error.message.includes('overloaded'))) {
+                throw new Error("AI現正忙碌中，請稍後再試一次");
+            }
+            throw new Error(data.error.message || "API Error");
+        }
+
         const text = data.candidates[0].content.parts[0].text;
         const bikeJsonMatch = text.match(/\{[\s\S]*\}/);
         const json = bikeJsonMatch ? JSON.parse(bikeJsonMatch[0]) : { valid: false, error: "無法解析 AI 回應" };
@@ -496,6 +527,7 @@ async function askGeminiForStations(query, type = 'bike') {
             alert(`✅ AI 已新增: ${json.name} (注意: AI 資料可能不完全準確)`);
         }
     } catch (e) {
-        if (grid) grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--danger-color);">❌發生錯誤: ${e.message}</div>`;
+        const msg = e.message.includes("AI現正忙碌中") ? e.message : `發生錯誤: ${e.message}`;
+        if (grid) grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--danger-color);">❌ ${msg}</div>`;
     }
 }

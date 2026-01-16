@@ -551,16 +551,27 @@ function simulateRendering() {
         console.log("Simulating with:", json);
 
         // Fix for Tab-Context Simulation
+        // Fix for Tab-Context Simulation
+        let renderSuffix = ''; // Default Daily
         if (typeof currentDashboardTab !== 'undefined') {
-            if (currentDashboardTab === 'oldHome') window.currentItineraryTarget = 'itinerary-result-oldHome';
-            else if (currentDashboardTab === 'custom') window.currentItineraryTarget = 'itinerary-result-custom';
-            else window.currentItineraryTarget = 'itinerary-result';
+            if (currentDashboardTab === 'oldHome') {
+                window.currentItineraryTarget = 'itinerary-result-oldHome';
+                renderSuffix = '-2';
+            }
+            else if (currentDashboardTab === 'custom') {
+                window.currentItineraryTarget = 'itinerary-result-custom';
+                renderSuffix = '-3';
+            }
+            else {
+                window.currentItineraryTarget = 'itinerary-result';
+                renderSuffix = '';
+            }
         }
 
-        renderResult('train', json.train);
-        renderResult('mrt', json.mrt);
-        renderResult('bus', json.bus);
-        renderResult('bike', json.bike);
+        renderResult('train', json.train, renderSuffix);
+        renderResult('mrt', json.mrt, renderSuffix);
+        renderResult('bus', json.bus, renderSuffix);
+        renderResult('bike', json.bike, renderSuffix);
 
         // Render Itinerary
         renderItineraries(json.itineraries);
@@ -970,88 +981,85 @@ function getBikeInfoHtml(name) {
     </span>`;
 }
 
-function renderResult(type, list) {
-    // Determine which containers to update.
-    // Ideally we update BOTH if we want them synced, or just the active tab's.
-    // Let's update ALL matching containers for simplicity.
-    const suffixes = ['', '-2', '-3'];
+function renderResult(type, list, targetSuffix = '') {
+    // Determine which container to update based on targetSuffix
+    // targetSuffix: '' (Daily), '-2' (OldHome), '-3' (Custom)
+    const suffix = targetSuffix || '';
 
-    suffixes.forEach(suffix => {
-        const div = document.getElementById(`${type}-result${suffix}`);
-        if (div) {
-            div.innerHTML = '';
+    const div = document.getElementById(`${type}-result${suffix}`);
+    if (div) {
+        div.innerHTML = '';
 
 
-            // Always show Title "搭乘順序"
-            const title = document.createElement('h4');
-            title.innerText = "搭乘順序";
-            title.style.margin = "0 0 10px 0";
-            title.style.color = "var(--accent-color)";
-            div.appendChild(title);
+        // Always show Title "搭乘順序"
+        const title = document.createElement('h4');
+        title.innerText = "搭乘順序";
+        title.style.margin = "0 0 10px 0";
+        title.style.color = "var(--accent-color)";
+        div.appendChild(title);
 
-            if (!list || list.length === 0) {
-                const span = document.createElement('span');
-                span.style.color = "#666";
-                span.innerText = "無建議";
-                div.appendChild(span);
-                return;
-            }
+        if (!list || list.length === 0) {
+            const span = document.createElement('span');
+            span.style.color = "#666";
+            span.innerText = "無建議";
+            div.appendChild(span);
+            return;
+        }
 
-            list.forEach(t => {
-                const d = document.createElement('div');
-                d.style.padding = "10px";
-                d.style.marginBottom = "10px";
-                d.style.borderBottom = "1px solid #333";
-                d.style.background = "rgba(255,255,255,0.02)";
-                d.style.borderRadius = "5px";
+        list.forEach(t => {
+            const d = document.createElement('div');
+            d.style.padding = "10px";
+            d.style.marginBottom = "10px";
+            d.style.borderBottom = "1px solid #333";
+            d.style.background = "rgba(255,255,255,0.02)";
+            d.style.borderRadius = "5px";
 
-                // Check if it's a Flow Object (Start -> End)
-                if (typeof t === 'object' && t.from && t.to) {
-                    const lineInfo = t.line ? ` - ${t.line}` : '';
+            // Check if it's a Flow Object (Start -> End)
+            if (typeof t === 'object' && t.from && t.to) {
+                const lineInfo = t.line ? ` - ${t.line}` : '';
 
-                    // Special Format for Bus: "Station - Board [Routes]"
-                    if (type === 'bus') {
-                        d.innerHTML = `
+                // Special Format for Bus: "Station - Board [Routes]"
+                if (type === 'bus') {
+                    d.innerHTML = `
                         <div style="font-weight:bold">${getMapLinkHtml(t.from, t.lat_from, t.lng_from)} <span style="font-weight:normal; color:#aaa"> -搭乘 ${t.line || '公車'}</span></div>
                         <div style="text-align:center; color:var(--accent-color); margin: 5px 0;">↓</div>
                         <div style="font-weight:bold">${getMapLinkHtml(t.to, t.lat_to, t.lng_to)} <span style="font-weight:normal; color:#aaa"> -下車</span></div>
                     `;
-                    } else if (type === 'bike') {
-                        // Bike Format: "Station - Rent" ... "Station - Return"
-                        const fromInfo = getBikeInfoHtml(t.from);
-                        const toInfo = getBikeInfoHtml(t.to);
+                } else if (type === 'bike') {
+                    // Bike Format: "Station - Rent" ... "Station - Return"
+                    const fromInfo = getBikeInfoHtml(t.from);
+                    const toInfo = getBikeInfoHtml(t.to);
 
-                        d.innerHTML = `
+                    d.innerHTML = `
                         <div style="font-weight:bold">${getMapLinkHtml(t.from, t.lat_from, t.lng_from)} ${fromInfo} <span style="font-weight:normal; color:#aaa"> -租車</span></div>
                         <div style="text-align:center; color:var(--accent-color); margin: 5px 0;">↓</div>
                         <div style="font-weight:bold">${getMapLinkHtml(t.to, t.lat_to, t.lng_to)} ${toInfo} <span style="font-weight:normal; color:#aaa"> -還車</span></div>
                     `;
-                    } else {
-                        // Default Format for Train/MRT: "Station - Board" ... "Station - Get Off"
-                        d.innerHTML = `
+                } else {
+                    // Default Format for Train/MRT: "Station - Board" ... "Station - Get Off"
+                    d.innerHTML = `
                         <div style="font-weight:bold">${getMapLinkHtml(t.from, t.lat_from, t.lng_from)} <span style="font-weight:normal; color:#aaa"> -上車${lineInfo}</span></div>
                         <div style="text-align:center; color:var(--accent-color); margin: 5px 0;">↓</div>
                         <div style="font-weight:bold">${getMapLinkHtml(t.to, t.lat_to, t.lng_to)} <span style="font-weight:normal; color:#aaa"> -下車</span></div>
                     `;
-                    }
-                } else {
-                    // Fallback for old simple list or simple objects
-                    let name = t;
-                    let lat = null; let lng = null;
-                    if (typeof t === 'object' && t !== null) {
-                        name = t.name || t.station || t.stop || t.title || JSON.stringify(t);
-                        lat = t.lat || null;
-                        lng = t.lng || null;
-                    }
+                }
+            } else {
+                // Fallback for old simple list or simple objects
+                let name = t;
+                let lat = null; let lng = null;
+                if (typeof t === 'object' && t !== null) {
+                    name = t.name || t.station || t.stop || t.title || JSON.stringify(t);
+                    lat = t.lat || null;
+                    lng = t.lng || null;
+                }
 
-                    d.innerHTML = `
+                d.innerHTML = `
                     ${getMapLinkHtml(typeof name === 'string' ? name : JSON.stringify(name), lat, lng)}
                 `;
-                }
-                div.appendChild(d);
-            });
-        }
-    });
+            }
+            div.appendChild(d);
+        });
+    }
 }
 
 function renderItineraries(list) {
@@ -1204,11 +1212,15 @@ function handleSend(overrideMode = null) {
     // Determine target Itinerary ID based on mode/tab
     window.currentItineraryTarget = (overrideMode === 'old_home') ? 'itinerary-result-oldHome' : 'itinerary-result';
 
+    // Determine Suffix
+    // old_home -> '-2', normal/work/late_night -> '' (Daily)
+    const suffix = (overrideMode === 'old_home') ? '-2' : '';
+
     createCommutePrompt(mode).then(prompt => {
         // If overriding (e.g. old_home), we might want to target a specific button for loading state?
         // simple default 'sendBtn' or 'sendBtnOldHome'
         const btnId = (overrideMode === 'old_home') ? 'sendBtnOldHome' : 'sendBtn';
-        callGeminiAPI(prompt, btnId);
+        callGeminiAPI(prompt, btnId, suffix);
     });
 }
 
@@ -1418,15 +1430,14 @@ async function executeCustomRoutePlan(location) {
 
     // Custom handling to parse additional "stations" data
     try {
-        const apiRes = await callGeminiAPI(prompt, 'sendBtnCustom');
+        const apiRes = await callGeminiAPI(prompt, 'sendBtnCustom', '-3'); // Pass '-3' for Custom Tab
         if (apiRes && apiRes.stations) {
-            // Render specialized blocks for Custom Tab (suffix -3 assumed by renderResult based on implementation?)
-            // Actually renderResult implementation iterates suffixes ['', '-2', '-3'].
-            // So calling it will update the custom tab blocks (-3) if the elements exist.
-            if (apiRes.stations.train) renderResult('train', apiRes.stations.train); else renderResult('train', []);
-            if (apiRes.stations.mrt) renderResult('mrt', apiRes.stations.mrt); else renderResult('mrt', []);
-            if (apiRes.stations.bus) renderResult('bus', apiRes.stations.bus); else renderResult('bus', []);
-            if (apiRes.stations.bike) renderResult('bike', apiRes.stations.bike); else renderResult('bike', []);
+            // Render specialized blocks for Custom Tab
+            // Explicitly pass '-3' suffix
+            if (apiRes.stations.train) renderResult('train', apiRes.stations.train, '-3'); else renderResult('train', [], '-3');
+            if (apiRes.stations.mrt) renderResult('mrt', apiRes.stations.mrt, '-3'); else renderResult('mrt', [], '-3');
+            if (apiRes.stations.bus) renderResult('bus', apiRes.stations.bus, '-3'); else renderResult('bus', [], '-3');
+            if (apiRes.stations.bike) renderResult('bike', apiRes.stations.bike, '-3'); else renderResult('bike', [], '-3');
         }
     } catch (e) {
         console.error("Custom Route Error:", e);

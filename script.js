@@ -11,7 +11,8 @@ const DEFAULT_SETTINGS = {
     homeTrans: { train: true, mrt: true, bus: true, bike: true, walk: true },
     workTrans: { train: true, mrt: true, bus: true, bike: true, walk: true },
     holiday: {
-        oldHomeLastMile: { type: 'walk', name: '' }
+        oldHomeLastMile: { type: 'walk', name: '' },
+        homeLastMile: { type: 'walk', name: '' }
     }
 };
 
@@ -37,6 +38,19 @@ const state = {
 };
 
 let currentDashboardTab = 'daily'; // daily, oldHome, custom
+
+// --- MODAL UTILS ---
+function openModal(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('active');
+}
+window.openModal = openModal; // Ensure global access
+
+function closeModal(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('active');
+}
+window.closeModal = closeModal; // Ensure global access
 
 function switchDashboardTab(tab) {
     currentDashboardTab = tab;
@@ -372,55 +386,65 @@ function switchSettingsTab(tab) {
 }
 
 function openSettings() {
-    // Load current settings into form
-    document.getElementById('settingApiKey').value = state.settings.apiKey;
+    try {
+        // Load current settings into form
+        document.getElementById('settingApiKey').value = state.settings.apiKey;
 
-    // Weekday
-    document.getElementById('settingWorkTime').value = state.settings.workTime;
-    document.getElementById('settingHomeTime').value = state.settings.homeTime;
-    const wEl = document.getElementById('settingWorkStation');
-    wEl.value = state.settings.workLastMile.name || "";
-    wEl.dataset.lat = state.settings.workLastMile.coords ? state.settings.workLastMile.coords.lat : "";
-    wEl.dataset.lng = state.settings.workLastMile.coords ? state.settings.workLastMile.coords.lng : "";
+        // Weekday
+        document.getElementById('settingWorkTime').value = state.settings.workTime;
+        document.getElementById('settingHomeTime').value = state.settings.homeTime;
+        const wEl = document.getElementById('settingWorkStation');
+        wEl.value = state.settings.workLastMile.name || "";
+        wEl.dataset.lat = state.settings.workLastMile.coords ? state.settings.workLastMile.coords.lat : "";
+        wEl.dataset.lng = state.settings.workLastMile.coords ? state.settings.workLastMile.coords.lng : "";
 
-    const hEl = document.getElementById('settingHomeStation');
-    hEl.value = state.settings.homeLastMile.name || "";
-    hEl.dataset.lat = state.settings.homeLastMile.coords ? state.settings.homeLastMile.coords.lat : "";
-    hEl.dataset.lng = state.settings.homeLastMile.coords ? state.settings.homeLastMile.coords.lng : "";
+        const hEl = document.getElementById('settingHomeStation');
+        hEl.value = state.settings.homeLastMile.name || "";
+        hEl.dataset.lat = state.settings.homeLastMile.coords ? state.settings.homeLastMile.coords.lat : "";
+        hEl.dataset.lng = state.settings.homeLastMile.coords ? state.settings.homeLastMile.coords.lng : "";
 
-    // Holiday
-    if (state.settings.holiday) {
-        const oldHome = state.settings.holiday.oldHomeLastMile;
-        const eOld = document.getElementById('settingOldHomeStation');
-        eOld.value = oldHome.name || "";
-        eOld.dataset.lat = oldHome.coords ? oldHome.coords.lat : "";
-        eOld.dataset.lng = oldHome.coords ? oldHome.coords.lng : "";
+        // Holiday
+        if (state.settings.holiday) {
+            const oldHome = state.settings.holiday.oldHomeLastMile;
+            const eOld = document.getElementById('settingOldHomeStation');
+            eOld.value = (oldHome && oldHome.name) ? oldHome.name : "";
+            eOld.dataset.lat = (oldHome && oldHome.coords) ? oldHome.coords.lat : "";
+            eOld.dataset.lng = (oldHome && oldHome.coords) ? oldHome.coords.lng : "";
 
-        const holHome = state.settings.holiday.homeLastMile;
-        const eHol = document.getElementById('settingHolidayHomeStation');
-        eHol.value = holHome.name || "";
-        eHol.dataset.lat = holHome.coords ? holHome.coords.lat : "";
-        eHol.dataset.lng = holHome.coords ? holHome.coords.lng : "";
+            const holHome = state.settings.holiday.homeLastMile || {};
+            const eHol = document.getElementById('settingHolidayHomeStation');
+            eHol.value = holHome.name || "";
+            eHol.dataset.lat = holHome.coords ? holHome.coords.lat : "";
+            eHol.dataset.lng = holHome.coords ? holHome.coords.lng : "";
+        }
+
+        // Apply Checkboxes Logic (Transport-in-transit only)
+        const setCheckboxes = (name, values) => {
+            document.querySelectorAll(`input[name="${name}"]`).forEach(cb => {
+                cb.checked = (values || []).includes(cb.value);
+            });
+        };
+
+        // Weekday Checkboxes
+        setCheckboxes('workTrans', state.settings.workTrans);
+        setCheckboxes('homeTrans', state.settings.homeTrans);
+
+    } catch (e) {
+        console.error("Error populating settings form:", e);
     }
 
-    // Apply Checkboxes Logic (Transport-in-transit only)
-    const setCheckboxes = (name, values) => {
-        document.querySelectorAll(`input[name="${name}"]`).forEach(cb => {
-            cb.checked = (values || []).includes(cb.value);
-        });
-    };
-
-    // Weekday Checkboxes
-    setCheckboxes('workTrans', state.settings.workTrans);
-    setCheckboxes('homeTrans', state.settings.homeTrans);
-
-    // Holiday Checkboxes
-    if (state.settings.holiday) {
-        // renderStatus removed
+    // Use global openModal to ensure proper state/style
+    if (typeof openModal === 'function') {
+        openModal('settingsModal');
+    } else {
+        const modal = document.getElementById('settingsModal');
+        if (modal) modal.classList.add('active');
     }
 
-    document.getElementById('settingsModal').classList.add('active');
-    if (window.innerWidth <= 768) toggleSidebar();
+    // Sidebar toggle (safely check existence)
+    if (typeof toggleSidebar === 'function' && window.innerWidth <= 768) {
+        toggleSidebar();
+    }
 }
 
 function saveSettings() {
@@ -1006,13 +1030,12 @@ function checkKeyStatus() {
 }
 
 function checkSettingsAndPrompt() {
-    // If no work/home station, prompt settings
-    if (!state.settings.workLastMile.name && !state.settings.homeLastMile.name) {
-        // setTimeout(() => {
-        //     if(confirm("歡迎！請先設定上下班地點與交通方式，以獲得最佳體驗。是否現在設定？")) {
-        //         openSettings();
-        //     }
-        // }, 1000);
+    // If no API Key or no work/home station, prompt settings
+    if (!state.settings.apiKey || (!state.settings.workLastMile.name && !state.settings.homeLastMile.name)) {
+        setTimeout(() => {
+            // Use custom modal instead of generic confirm
+            openModal('initPromptModal');
+        }, 1000);
     }
 }
 
@@ -1709,25 +1732,34 @@ document.addEventListener('DOMContentLoaded', () => {
             fetchYouBikeData(25.0330, 121.5654, true); // Default Taipei 101
         }
     }
-    // Check API Key on Load
-    if (!state.settings.apiKey) {
-        if (typeof openSettings === 'function') openSettings();
+    // Check Key Status
+    checkKeyStatus();
+
+    // Check Settings and Prompt (API Key or Last Mile)
+    checkSettingsAndPrompt();
+
+    // Debug Button Visibility Logic
+    const debugBtn = document.getElementById('debugInfoBtn');
+    if (debugBtn) {
+        const isLocal = window.location.protocol === 'file:' ||
+            window.location.hostname === 'localhost' ||
+            window.location.hostname === '127.0.0.1';
+        debugBtn.style.display = isLocal ? 'inline-block' : 'none';
+    }
+
+    // Default Tab Priority Logic
+    // If all essential settings are missing, force Custom tab
+    // Note: checkSettingsAndPrompt handles the popup, this handles the view.
+    const workSet = state.settings.workLastMile && state.settings.workLastMile.name;
+    const homeSet = state.settings.homeLastMile && state.settings.homeLastMile.name;
+    const oldHomeSet = state.settings.holiday && state.settings.holiday.oldHomeLastMile && state.settings.holiday.oldHomeLastMile.name;
+
+    if (!workSet && !homeSet && !oldHomeSet) {
+        // Force Custom Tab if absolutely nothing is configured
+        setTimeout(() => switchDashboardTab('custom'), 100);
     } else {
-        // If API Key exists, check if Last Mile is set. If not, default to Custom Tab.
-        // Unless it's a specific holiday logic handled by switchDashboardTab?
-        // switchDashboardTab is called earlier? No, it's called inside isHoliday check... wait.
-        // Let's check where switchDashboardTab is called. It's not in the visible snippet.
-        // I need to ensure this logic overrides or works with existing logic.
-        // Existing logic for default tab is likely inside 'init' or 'DOMContentLoaded' but missing in snippet.
-        // Wait, I saw it earlier in 'impl_auto_tab_switch'.
-
-        // Let's just add the logic: If no last mile set -> switch to custom.
-        const workSet = state.settings.workLastMile && state.settings.workLastMile.name;
-        const homeSet = state.settings.homeLastMile && state.settings.homeLastMile.name;
-
-        if (!workSet && !homeSet) {
-            // Delay slightly to override defaults if any
-            setTimeout(() => switchDashboardTab('custom'), 100);
-        }
+        // ... (Existing time-based auto-switch logic is preserved implicitly if we don't switch here, 
+        // effectively falling back to whatever default was set or staying on Daily)
+        // Wait, the previous logic (lines 1728) did this.
     }
 });

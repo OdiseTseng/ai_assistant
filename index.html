@@ -45,7 +45,8 @@
             <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
                 <div id="statusText" style="margin-right:15px; align-self:center; font-size:0.9em; color:#94a3b8;">
                     狀態：等待操作...</div>
-                <button onclick="openDebugModal()" style="padding:4px 10px; font-size:12px;">Debug Info</button>
+                <button id="debugInfoBtn" onclick="openDebugModal()"
+                    style="padding:4px 10px; font-size:12px; display:none;">Debug Info</button>
             </div>
 
             <!-- Dashboard Tabs -->
@@ -501,6 +502,49 @@
                         </ul>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- INIT PROMPT MODAL -->
+        <!-- INIT PROMPT MODAL -->
+        <div id="initPromptModal" class="modal-overlay" onclick="if(event.target===this) closeModal('initPromptModal')">
+            <div class="modal-content"
+                style="max-width: 450px; display: flex; flex-direction: column; padding: 0; overflow: hidden; background: #1e293b;">
+
+                <!-- 1. 主標題區塊 (Header): Title Left, Close Right -->
+                <div class="modal-header"
+                    style="display: flex; justify-content: space-between; align-items: center; padding: 20px 25px; background: #1e293b; border-bottom: 1px solid #334155;">
+                    <h2 style="font-size: 1.5em; margin: 0; color: #fff; font-weight: 600;">歡迎使用</h2>
+                    <button class="close-btn" onclick="closeModal('initPromptModal')"
+                        style="position: static; font-size: 1.5em; line-height: 1; margin: 0; color: #94a3b8;">&times;</button>
+                </div>
+
+                <!-- 2. 主文區塊 (Body): Top-Down Stacking -->
+                <div class="modal-body"
+                    style="padding: 30px 40px; text-align: center; background: #0f172a; flex-grow: 1; display: flex; flex-direction: column; justify-content: center;">
+                    <p style="font-size: 1.1em; color: #e2e8f0; margin-bottom: 20px; line-height: 1.6;">
+                        系統檢測到您尚未設定<br>
+                        <strong style="color: var(--accent-color);">API Key</strong> 或 <strong
+                            style="color: var(--accent-color);">上下班地點</strong>
+                    </p>
+                    <p style="color: #94a3b8; font-size: 0.95em; line-height: 1.6; margin: 0;">
+                        為了讓 AI 助理能正常為您規劃路線，<br>建議您現在前往設定頁面完成配置。
+                    </p>
+                </div>
+
+                <!-- 3. 按鈕區塊 (Footer): At the bottom -->
+                <div class="modal-footer"
+                    style="padding: 20px 40px 30px; background: #0f172a; display: flex; flex-direction: column; gap: 15px;">
+                    <button class="btn-primary" onclick="closeModal('initPromptModal'); openSettings();"
+                        style="width: 100%; padding: 12px; font-size: 1.1em; display: flex; justify-content: center; align-items: center; gap: 8px; border-radius: 6px;">
+                        前往設定 <span style="font-size: 1.1em;">⚙️</span>
+                    </button>
+                    <button class="btn-secondary" onclick="closeModal('initPromptModal')"
+                        style="width: 100%; padding: 10px; background: transparent; border: 1px solid #334155; color: #64748b; font-size: 0.95em; border-radius: 6px;">
+                        稍後再說
+                    </button>
+                </div>
+
             </div>
         </div>
 

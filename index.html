@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Odise's Personal Gemini Assistant">
-    <title>Odise Gemini Assistant</title>
+    <title>Assistant</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -37,7 +37,7 @@
         <!-- Mobile Top Bar -->
         <div class="top-bar">
             <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
-            <span>Odise Assistant</span>
+            <span>Assistant</span>
         </div>
 
         <div class="dashboard-container">
@@ -448,144 +448,156 @@
                 </div>
                 <div class="modal-body" style="overflow-y: auto;">
                     <div class="help-content">
-                        <h2>Odise Gemini Assistant</h2>
-                        <p>一個基於 Google Gemini API 的個人助理網頁，整合了交通資訊查詢功能。</p>
+                        <h2>Assistant</h2>
+                        <p>一個基於 Google Gemini API 的個人助理網頁，整合了交通資訊查詢與智慧路線規劃功能。</p>
 
                         <h3>✨ 功能特色</h3>
                         <ul>
-                            <li><strong>交通時刻查詢</strong>：火車、公車、YouBike (自定義站點)。</li>
-                            <li><strong>GPS 定位</strong>：自動抓取當前位置以提供最近站點資訊。</li>
-                            <li><strong>自動版本號</strong>：每次 Git Commit 自動注入更新時間。</li>
+                            <li><strong>日常通勤</strong>：一鍵查詢上班/下班的最佳路線 (支援火車、捷運、公車、YouBike)。</li>
+                            <li><strong>回老家規劃</strong>：針對假日返鄉需求，提供專屬的路線規劃功能。</li>
+                            <li><strong>自定義導航</strong>：想去哪就去哪，輸入目的地即可自動規劃。</li>
+                            <li><strong>智慧判斷</strong>：系統會根據時間自動切換「上班」或「下班」模式。</li>
+                            <li><strong>隱私安全</strong>：API Key 與設定僅儲存在您的瀏覽器，不會上傳伺服器。</li>
                         </ul>
 
                         <h3>🚀 如何使用</h3>
                         <ol>
-                            <li><strong>設定 API Key</strong>：
+                            <li><strong>初始設定</strong>：
                                 <ul>
-                                    <li>前往 <a href="https://aistudio.google.com/" target="_blank"
-                                            style="color:var(--accent-color)">Google AI Studio</a> 申請 API Key。
-                                    </li>
-                                    <li>在個人化設定中輸入 Key 並儲存。</li>
-                                    <li><em>注意：Key 僅儲存在您的瀏覽器 LocalStorage 中，不會上傳至伺服器。</em></li>
+                                    <li>首次使用請點擊「前往設定」或設定圖示 ⚙️。</li>
+                                    <li>輸入 <a href="https://aistudio.google.com/" target="_blank"
+                                            style="color:var(--accent-color)">Google AI Studio</a> 申請的 API Key。</li>
+                                    <li>設定您的上班/住家/老家地點與交通偏好。</li>
                                 </ul>
                             </li>
                             <li><strong>新增站點</strong>：
                                 <ul>
-                                    <li>點擊各區塊的「+」按鈕。</li>
-                                    <li><strong>火車</strong>：可透過左側縣市選單或上方搜尋框尋找站點。</li>
-                                    <li><strong>公車/YouBike</strong>：直接在搜尋框輸入站點名稱 (如 "307", "捷運板橋站")，並點擊「新增」。
-                                    </li>
+                                    <li>點擊各交通工具區塊的「+」按鈕。</li>
+                                    <li>支援火車、捷運、公車、YouBike 站點搜尋與加入。</li>
                                 </ul>
                             </li>
-                            <li><strong>發送查詢</strong>：
+                            <li><strong>開始查詢</strong>：
                                 <ul>
-                                    <li>點擊「根據設定取得 GPS 並查詢」。</li>
-                                    <li>允許瀏覽器定位權限。</li>
-                                    <li>Gemini 將會根據您的站點列表與位置回覆資訊。</li>
+                                    <li>點擊主畫面的查詢按鈕 (如「📍 規劃路線」)。</li>
+                                    <li>允許瀏覽器定位權限，AI 將會結合您的位置與設定提供最佳建議。</li>
                                 </ul>
                             </li>
                         </ol>
 
                         <h3>❓ 常見問題</h3>
                         <ul>
-                            <li><strong>Q: 頁面一直提示「尚未偵測到金鑰」？</strong>
-                                <p style="margin-top:5px;">請確認您有點擊「儲存設定」按鈕。<br>
-                                    <strong>如果您使用 VS Code 的 Preview 功能</strong>：建議直接用電腦的 <strong>Chrome
-                                        瀏覽器</strong> 開啟
-                                    <code>index.html</code> 檔案。
-                                </p>
+                            <li><strong>Q: 按鈕顯示「請先設定 API Key」？</strong>
+                                <p style="margin-top:5px;">請進入設定頁面貼上有效的 Gemini API Key 並儲存。</p>
                             </li>
                             <li><strong>Q: 為什麼 GPS 沒反應？</strong>
-                                <p style="margin-top:5px;">請確認瀏覽器有允許網頁存取位置權限。<br>
-                                    需要在 <code>https</code> 或 <code>file://</code> (本地檔案) 環境下執行。</p>
+                                <p style="margin-top:5px;">請確認瀏覽器已允許網頁存取位置權限。</p>
                             </li>
                         </ul>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- INIT PROMPT MODAL -->
-        <!-- INIT PROMPT MODAL -->
-        <div id="initPromptModal" class="modal-overlay" onclick="if(event.target===this) closeModal('initPromptModal')">
-            <div class="modal-content"
-                style="max-width: 450px; display: flex; flex-direction: column; padding: 0; overflow: hidden; background: #1e293b;">
-
-                <!-- 1. 主標題區塊 (Header): Title Left, Close Right -->
-                <div class="modal-header"
-                    style="display: flex; justify-content: space-between; align-items: center; padding: 20px 25px; background: #1e293b; border-bottom: 1px solid #334155;">
-                    <h2 style="font-size: 1.5em; margin: 0; color: #fff; font-weight: 600;">歡迎使用</h2>
-                    <button class="close-btn" onclick="closeModal('initPromptModal')"
-                        style="position: static; font-size: 1.5em; line-height: 1; margin: 0; color: #94a3b8;">&times;</button>
-                </div>
-
-                <!-- 2. 主文區塊 (Body): Top-Down Stacking -->
-                <div class="modal-body"
-                    style="padding: 30px 40px; text-align: center; background: #0f172a; flex-grow: 1; display: flex; flex-direction: column; justify-content: center;">
-                    <p style="font-size: 1.1em; color: #e2e8f0; margin-bottom: 20px; line-height: 1.6;">
-                        系統檢測到您尚未設定<br>
-                        <strong style="color: var(--accent-color);">API Key</strong> 或 <strong
-                            style="color: var(--accent-color);">上下班地點</strong>
-                    </p>
-                    <p style="color: #94a3b8; font-size: 0.95em; line-height: 1.6; margin: 0;">
-                        為了讓 AI 助理能正常為您規劃路線，<br>建議您現在前往設定頁面完成配置。
-                    </p>
-                </div>
-
-                <!-- 3. 按鈕區塊 (Footer): At the bottom -->
+                <!-- Footer with Creator Info -->
                 <div class="modal-footer"
-                    style="padding: 20px 40px 30px; background: #0f172a; display: flex; flex-direction: column; gap: 15px;">
-                    <button class="btn-primary" onclick="closeModal('initPromptModal'); openSettings();"
-                        style="width: 100%; padding: 12px; font-size: 1.1em; display: flex; justify-content: center; align-items: center; gap: 8px; border-radius: 6px;">
-                        前往設定 <span style="font-size: 1.1em;">⚙️</span>
-                    </button>
-                    <button class="btn-secondary" onclick="closeModal('initPromptModal')"
-                        style="width: 100%; padding: 10px; background: transparent; border: 1px solid #334155; color: #64748b; font-size: 0.95em; border-radius: 6px;">
-                        稍後再說
-                    </button>
-                </div>
-
-            </div>
-        </div>
-
-        <!-- Debug Console Modal -->
-        <div id="debugModal" class="modal-overlay">
-            <div class="modal-content debug-modal"
-                style="width: 90vw; height: 90vh; display: flex; flex-direction: column;">
-                <div class="modal-header">
-                    <h2>🛠️ 後台 Debug Console</h2>
-                    <span class="close-btn" onclick="closeModal('debugModal')">&times;</span>
-                </div>
-                <div class="modal-body"
-                    style="flex: 1; display: flex; flex-direction: column; overflow: hidden; gap: 10px;">
-                    <div style="flex: 1; display: flex; flex-direction: column;">
-                        <label style="color: var(--accent-color); font-weight: bold;">🌐 其他 API 查詢與回覆 (Non-AI)</label>
-                        <textarea id="debugOtherApiLog" readonly
-                            style="flex: 1; width: 100%; background: #111; color: #aaa; padding: 10px; font-family: monospace; border: 1px solid #333; resize: none; margin-bottom: 10px;"></textarea>
+                    style="padding: 15px; border-top: 1px solid #333; display: flex; justify-content: center; align-items: center; gap: 15px;">
+                    <div style="font-size: 0.9em; color: #888; text-align: left; line-height: 1.4;">
+                        <div>Created by <strong>Gemini 3 Pro</strong> (99.9%)</div>
+                        <div style="font-size: 0.9em; color: #666;">Idea & Review by <strong>Odise</strong></div>
                     </div>
-                    <div style="flex: 1; display: flex; flex-direction: column;">
-                        <label id="debugPromptLabel" style="color: var(--accent-color); font-weight: bold;">📤 Sent
-                            Prompt</label>
-                        <textarea id="debugPrompt" readonly
-                            style="flex: 1; width: 100%; background: #111; color: #0f0; padding: 10px; font-family: monospace; border: 1px solid #333; resize: none;"></textarea>
-                    </div>
-                    <div style="flex: 1; display: flex; flex-direction: column;">
-                        <label style="color: var(--accent-color); font-weight: bold;">📥 Received Response</label>
-                        <textarea id="debugResponse"
-                            style="flex: 1; width: 100%; background: #111; color: #0df; padding: 10px; font-family: monospace; border: 1px solid #333; resize: none;"></textarea>
-                        <button onclick="simulateRendering()" class="btn-primary"
-                            style="margin-top:10px; background: var(--success-color);">▶ 模擬渲染 (Simulate
-                            Rendering)</button>
-                    </div>
+                    <a href="https://github.com/OdiseTseng/ai_assistant" target="_blank"
+                        style="text-decoration: none; display: flex; align-items: center;">
+                        <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+                            alt="GitHub" style="width: 24px; height: 24px; background: white; border-radius: 50%;">
+                    </a>
                 </div>
             </div>
         </div>
+        </li>
+        </ul>
+    </div>
+    </div>
+    </div>
+    </div>
 
-        <!-- Scripts -->
-        <script src="version.js"></script>
-        <script src="station_data.js"></script>
-        <script src="api_service.js"></script>
-        <script src="script.js"></script>
+    <!-- INIT PROMPT MODAL -->
+    <!-- INIT PROMPT MODAL -->
+    <div id="initPromptModal" class="modal-overlay" onclick="if(event.target===this) closeModal('initPromptModal')">
+        <div class="modal-content"
+            style="max-width: 450px; display: flex; flex-direction: column; padding: 0; overflow: hidden; background: #1e293b;">
+
+            <!-- 1. 主標題區塊 (Header): Title Left, Close Right -->
+            <div class="modal-header"
+                style="display: flex; justify-content: space-between; align-items: center; padding: 20px 25px; background: #1e293b; border-bottom: 1px solid #334155;">
+                <h2 style="font-size: 1.5em; margin: 0; color: #fff; font-weight: 600;">歡迎使用</h2>
+                <button class="close-btn" onclick="closeModal('initPromptModal')"
+                    style="position: static; font-size: 1.5em; line-height: 1; margin: 0; color: #94a3b8;">&times;</button>
+            </div>
+
+            <!-- 2. 主文區塊 (Body): Top-Down Stacking -->
+            <div class="modal-body"
+                style="padding: 30px 40px; text-align: center; background: #0f172a; flex-grow: 1; display: flex; flex-direction: column; justify-content: center;">
+                <p style="font-size: 1.1em; color: #e2e8f0; margin-bottom: 20px; line-height: 1.6;">
+                    系統檢測到您尚未設定<br>
+                    <strong style="color: var(--accent-color);">API Key</strong> 或 <strong
+                        style="color: var(--accent-color);">上下班地點</strong>
+                </p>
+                <p style="color: #94a3b8; font-size: 0.95em; line-height: 1.6; margin: 0;">
+                    為了讓 AI 助理能正常為您規劃路線，<br>建議您現在前往設定頁面完成配置。
+                </p>
+            </div>
+
+            <!-- 3. 按鈕區塊 (Footer): At the bottom -->
+            <div class="modal-footer"
+                style="padding: 20px 40px 30px; background: #0f172a; display: flex; flex-direction: column; gap: 15px;">
+                <button class="btn-primary" onclick="closeModal('initPromptModal'); openSettings();"
+                    style="width: 100%; padding: 12px; font-size: 1.1em; display: flex; justify-content: center; align-items: center; gap: 8px; border-radius: 6px;">
+                    前往設定 <span style="font-size: 1.1em;">⚙️</span>
+                </button>
+                <button class="btn-secondary" onclick="closeModal('initPromptModal')"
+                    style="width: 100%; padding: 10px; background: transparent; border: 1px solid #334155; color: #64748b; font-size: 0.95em; border-radius: 6px;">
+                    稍後再說
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Debug Console Modal -->
+    <div id="debugModal" class="modal-overlay">
+        <div class="modal-content debug-modal"
+            style="width: 90vw; height: 90vh; display: flex; flex-direction: column;">
+            <div class="modal-header">
+                <h2>🛠️ 後台 Debug Console</h2>
+                <span class="close-btn" onclick="closeModal('debugModal')">&times;</span>
+            </div>
+            <div class="modal-body"
+                style="flex: 1; display: flex; flex-direction: column; overflow: hidden; gap: 10px;">
+                <div style="flex: 1; display: flex; flex-direction: column;">
+                    <label style="color: var(--accent-color); font-weight: bold;">🌐 其他 API 查詢與回覆 (Non-AI)</label>
+                    <textarea id="debugOtherApiLog" readonly
+                        style="flex: 1; width: 100%; background: #111; color: #aaa; padding: 10px; font-family: monospace; border: 1px solid #333; resize: none; margin-bottom: 10px;"></textarea>
+                </div>
+                <div style="flex: 1; display: flex; flex-direction: column;">
+                    <label id="debugPromptLabel" style="color: var(--accent-color); font-weight: bold;">📤 Sent
+                        Prompt</label>
+                    <textarea id="debugPrompt" readonly
+                        style="flex: 1; width: 100%; background: #111; color: #0f0; padding: 10px; font-family: monospace; border: 1px solid #333; resize: none;"></textarea>
+                </div>
+                <div style="flex: 1; display: flex; flex-direction: column;">
+                    <label style="color: var(--accent-color); font-weight: bold;">📥 Received Response</label>
+                    <textarea id="debugResponse"
+                        style="flex: 1; width: 100%; background: #111; color: #0df; padding: 10px; font-family: monospace; border: 1px solid #333; resize: none;"></textarea>
+                    <button onclick="simulateRendering()" class="btn-primary"
+                        style="margin-top:10px; background: var(--success-color);">▶ 模擬渲染 (Simulate
+                        Rendering)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="version.js"></script>
+    <script src="station_data.js"></script>
+    <script src="api_service.js"></script>
+    <script src="script.js"></script>
 </body>
 
 </html>

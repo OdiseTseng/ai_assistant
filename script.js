@@ -827,6 +827,14 @@ function closeModal(id) {
 window.openModal = openModal;
 window.closeModal = closeModal;
 
+function toggleSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    if (sidebar) sidebar.classList.toggle('active');
+    if (overlay) overlay.classList.toggle('active');
+}
+window.toggleSidebar = toggleSidebar;
+
 
 function renderGrid(items) {
     const grid = document.getElementById('modalGrid');

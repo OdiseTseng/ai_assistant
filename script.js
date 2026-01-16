@@ -180,54 +180,59 @@ document.addEventListener('DOMContentLoaded', () => {
         // Auto-open settings if incomplete
         checkSettingsAndPrompt();
 
-        // --- AUTO TAB SWITCH LOGIC ---
-        // Requirement:
-        // 1. If Holiday -> Default to 'custom' (想去哪)
-        // 2. If Weekday:
-        //    - If within 3 hours of Work/Home time -> Default to 'daily' (Daily Commute)
-        //    - Else -> Default to 'custom' (As implied by "holiday default custom" contrast, and usually idle time)
+        // --- PRIORITY CHECK: NO LAST MILE SETTINGS ---
+        // If Work, Home, and Old Home last miles are all unset, default to Custom.
+        const workSet = state.settings.workLastMile && state.settings.workLastMile.name;
+        const homeSet = state.settings.homeLastMile && state.settings.homeLastMile.name;
+        const oldHomeSet = state.settings.holiday && state.settings.holiday.oldHomeLastMile && state.settings.holiday.oldHomeLastMile.name;
 
-        const now = new Date();
-        const isHol = isHoliday(now);
-
-        if (isHol) {
-            console.log("🌟 Holiday detected: Defaulting to Custom Tab");
+        if (!workSet && !homeSet && !oldHomeSet) {
+            console.log("⚠️ No Last Mile settings found: Defaulting to Custom Tab");
             switchDashboardTab('custom');
         } else {
-            // Weekday
-            // Check if near commute time (using getCommuteMode logic without mode return)
-            // We can reuse getCommuteMode() but it returns strings.
-            // 'work' or 'home' implies implied proximity (logic is inside getCommuteMode)
-            // actually getCommuteMode defaults to 'home' if not work, so it's not strictly "proximity".
-            // Let's check proximity manually to be sure.
+            // --- AUTO TAB SWITCH LOGIC (Existing) ---
+            // Requirement:
+            // 1. If Holiday -> Default to 'custom' (想去哪)
+            // 2. If Weekday:
+            //    - If within 3 hours of Work/Home time -> Default to 'daily' (Daily Commute)
+            //    - Else -> Default to 'custom'
 
-            let nearCommute = false;
-            const hour = now.getHours();
-            const minutes = now.getMinutes();
-            const currentMinutes = hour * 60 + minutes;
+            const now = new Date();
+            const isHol = isHoliday(now);
 
-            // Check Work Time
-            if (state.settings.workTime) {
-                const [wH, wM] = state.settings.workTime.split(':').map(Number);
-                const workMins = wH * 60 + wM;
-                if (Math.abs(currentMinutes - workMins) <= 180) nearCommute = true;
-            }
-
-            // Check Home Time
-            if (state.settings.homeTime) {
-                const [hH, hM] = state.settings.homeTime.split(':').map(Number);
-                const homeMins = hH * 60 + hM;
-                if (Math.abs(currentMinutes - homeMins) <= 180) nearCommute = true;
-            }
-
-            if (nearCommute) {
-                console.log("💼 Commute Time detected: Defaulting to Daily Tab");
-                switchDashboardTab('daily');
-            } else {
-                console.log("🕒 Off-peak Weekday: Defaulting to Custom Tab");
+            if (isHol) {
+                console.log("🌟 Holiday detected: Defaulting to Custom Tab");
                 switchDashboardTab('custom');
+            } else {
+                // Weekday Logic
+                let nearCommute = false;
+                const hour = now.getHours();
+                const minutes = now.getMinutes();
+                const currentMinutes = hour * 60 + minutes;
+
+                // Check Work Time
+                if (state.settings.workTime) {
+                    const [wH, wM] = state.settings.workTime.split(':').map(Number);
+                    const workMins = wH * 60 + wM;
+                    if (Math.abs(currentMinutes - workMins) <= 180) nearCommute = true;
+                }
+
+                // Check Home Time
+                if (state.settings.homeTime) {
+                    const [hH, hM] = state.settings.homeTime.split(':').map(Number);
+                    const homeMins = hH * 60 + hM;
+                    if (Math.abs(currentMinutes - homeMins) <= 180) nearCommute = true;
+                }
+
+                if (nearCommute) {
+                    console.log("💼 Commute Time detected: Defaulting to Daily Tab");
+                    switchDashboardTab('daily');
+                } else {
+                    console.log("🕒 Off-peak Weekday: Defaulting to Custom Tab");
+                    switchDashboardTab('custom');
+                }
             }
-        }
+        } // End of Priority Check else block
 
         // Version
         if (typeof BUILD_INFO !== 'undefined') {
@@ -568,10 +573,13 @@ function simulateRendering() {
             }
         }
 
-        renderResult('train', json.train, renderSuffix);
-        renderResult('mrt', json.mrt, renderSuffix);
-        renderResult('bus', json.bus, renderSuffix);
-        renderResult('bike', json.bike, renderSuffix);
+        // Handle potential nesting under 'stations'
+        const src = (json.stations && (json.stations.train || json.stations.mrt || json.stations.bus || json.stations.bike)) ? json.stations : json;
+
+        renderResult('train', src.train, renderSuffix);
+        renderResult('mrt', src.mrt, renderSuffix);
+        renderResult('bus', src.bus, renderSuffix);
+        renderResult('bike', src.bike, renderSuffix);
 
         // Render Itinerary
         renderItineraries(json.itineraries);
@@ -1085,12 +1093,18 @@ function renderItineraries(list) {
             // Content Resolution
             // Priority: details (string) > steps (array) > summary (string)
             let rawContent = '';
+            let stepsArray = null;
 
-            if (i.details) {
-                rawContent = i.details;
-            } else if (i.steps && Array.isArray(i.steps)) {
+            // Determine if we have steps (details as array OR steps as array)
+            if (Array.isArray(i.details)) {
+                stepsArray = i.details;
+            } else if (Array.isArray(i.steps)) {
+                stepsArray = i.steps;
+            }
+
+            if (stepsArray) {
                 // Construct HTML from Steps
-                let stepsHtml = i.steps.map((step, idx) => {
+                let stepsHtml = stepsArray.map((step, idx) => {
                     const typeIcon = {
                         walk: '🚶',
                         mrt: '🚇',
@@ -1100,11 +1114,13 @@ function renderItineraries(list) {
                         transfer: '🔄'
                     }[step.type] || '📍';
 
-                    let instruction = step.instruction || '前往下一站';
+                    let instruction = step.instruction || step.from + ' → ' + step.to;
+                    if (step.duration) instruction += ` (${step.duration})`;
 
                     // Highlight line info if available
-                    if (step.line_name) {
-                        instruction = `<span style="color:#fbbf24; font-weight:bold;">[${step.line_name}]</span> ` + instruction;
+                    if (step.line || step.line_name) {
+                        const l = step.line || step.line_name;
+                        instruction = `<span style="color:#fbbf24; font-weight:bold;">[${l}]</span> ` + instruction;
                     }
 
                     return `
@@ -1113,22 +1129,25 @@ function renderItineraries(list) {
                         <div>
                             <span style="font-weight:bold; color:#ddd;">Step ${idx + 1}</span><br>
                             <span style="color:#bbb;">${instruction}</span>
+                            ${step.notes ? `<div style="font-size:0.9em; color:#888;">${step.notes}</div>` : ''}
                         </div>
                     </div>`;
                 }).join('');
 
                 rawContent = stepsHtml;
 
-                // Append Summary if available
+                // Append Summary if available separate from details
                 if (i.summary) {
                     rawContent += `<div style="margin-top:10px; padding-top:10px; border-top:1px dashed #444; color:#94a3b8;">📝 ${i.summary}</div>`;
                 }
+            } else if (i.details) {
+                rawContent = i.details; // Text description
             } else if (i.summary) {
                 rawContent = i.summary;
             }
 
             // Apply Formatting (Bold, Links, Line Breaks)
-            let html = (rawContent || '')
+            let html = (String(rawContent) || '')
                 // Line breaks: Match "digits + dot + space" to avoid breaking coordinates (e.g. 25.04)
                 .replace(/(\d+\.\s)/g, '<br>$1')
                 // Bold text
@@ -1614,9 +1633,29 @@ document.addEventListener('DOMContentLoaded', () => {
         // Just trigger a fetch around a default point or the first saved station
         if (state.bike[0] && state.bike[0].lat) {
             const s = state.bike[0];
-            fetchYouBikeData(s.lat, s.lng, true);
         } else {
             fetchYouBikeData(25.0330, 121.5654, true); // Default Taipei 101
+        }
+    }
+    // Check API Key on Load
+    if (!state.settings.apiKey) {
+        if (typeof openSettings === 'function') openSettings();
+    } else {
+        // If API Key exists, check if Last Mile is set. If not, default to Custom Tab.
+        // Unless it's a specific holiday logic handled by switchDashboardTab?
+        // switchDashboardTab is called earlier? No, it's called inside isHoliday check... wait.
+        // Let's check where switchDashboardTab is called. It's not in the visible snippet.
+        // I need to ensure this logic overrides or works with existing logic.
+        // Existing logic for default tab is likely inside 'init' or 'DOMContentLoaded' but missing in snippet.
+        // Wait, I saw it earlier in 'impl_auto_tab_switch'.
+
+        // Let's just add the logic: If no last mile set -> switch to custom.
+        const workSet = state.settings.workLastMile && state.settings.workLastMile.name;
+        const homeSet = state.settings.homeLastMile && state.settings.homeLastMile.name;
+
+        if (!workSet && !homeSet) {
+            // Delay slightly to override defaults if any
+            setTimeout(() => switchDashboardTab('custom'), 100);
         }
     }
 });

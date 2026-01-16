@@ -262,7 +262,7 @@ async function callGeminiAPI(prompt, btnId = 'sendBtn', renderSuffix = '') {
     if (btn) {
         originalText = btn.innerText;
         btn.disabled = true;
-        btn.innerText = "🤖 思考中...";
+        btn.innerText = "🤖 規劃路線方案中...";
     }
 
     // Debug Capture (Prompt)
@@ -306,10 +306,13 @@ async function callGeminiAPI(prompt, btnId = 'sendBtn', renderSuffix = '') {
 
         // Render Results (Core logic function, assumed to be global or passed)
         if (typeof renderResult === 'function') {
-            renderResult('train', json.train, renderSuffix);
-            renderResult('mrt', json.mrt, renderSuffix);
-            renderResult('bus', json.bus, renderSuffix);
-            renderResult('bike', json.bike, renderSuffix);
+            // Handle potential nesting under 'stations' (AI inconsistency)
+            const src = (json.stations && (json.stations.train || json.stations.mrt || json.stations.bus || json.stations.bike)) ? json.stations : json;
+
+            renderResult('train', src.train, renderSuffix);
+            renderResult('mrt', src.mrt, renderSuffix);
+            renderResult('bus', src.bus, renderSuffix);
+            renderResult('bike', src.bike, renderSuffix);
         }
         if (typeof renderItineraries === 'function') {
             renderItineraries(json.itineraries);

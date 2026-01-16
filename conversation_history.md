@@ -4,6 +4,60 @@
 
 本文件作為我們對話的永久記錄，讓您可以透過同步此儲存庫，在不同機器（Windows/Mac）上存取上下文和歷史記錄。
 
+
+## 修復 AI 回傳巢狀結構導致無站點資訊
+**日期：** 2026-01-16
+**ID：** `fix_nested_stations_response`
+
+**目標：**
+修正當 AI 回傳的 JSON 結構將站點資訊包裝在 `stations` 物件內（例如 `json.stations.mrt` 而非預期的 `json.mrt`）時，前端無法正確顯示站點資訊的問題。
+
+**關鍵行動：**
+- **修改 api_service.js**：
+    - 在 `callGeminiAPI` 中加入結構相容性檢查。
+- **修改 script.js** (模擬渲染)：
+    - 同步更新 `simulateRendering` 函式，使其同樣支援解析 `json.stations` 內的資料，確保開發者使用「模擬渲染」功能測試 JSON 時能得到正確結果。
+
+## 修復 JSON 解析錯誤 (Render Itinerary)
+**日期：** 2026-01-16
+**ID：** `fix_render_itineraries_parsing_error`
+
+**修正：**
+修正當 AI 回傳的行程細節 (`details`) 為陣列格式時，被錯誤指派為字串而顯示為 `[object Object]` 的問題。
+
+**關鍵行動：**
+- **修改 script.js**：
+    - 重構 `renderItineraries` 邏輯，優先檢查 `i.details` 或 `i.steps` 是否為陣列。
+    - 若為陣列，則執行步驟化 (Step-by-step) 的 HTML 渲染邏輯，而非直接當作文字顯示。
+    - 增加對 `step.notes` 與 `step.duration` 的顯示支援。
+
+## 修復 API Key 缺失提示與預設頁面邏輯
+**日期：** 2026-01-16
+**ID：** `fix_api_key_modal_on_load`
+
+**目標：**
+1. 確保應用程式啟動時，若偵測到未設定 API Key，自動彈出設定視窗。
+2. **調整預設頁面邏輯優先順序**：
+    - **優先檢查**：若使用者未設定上下班與回老家的「最後一哩路」，直接切換至「想去哪 (Custom)」頁面。
+    - **次要檢查**：若已有設定，則執行原有的「依據時間/假日自動判斷 Commute/OldHome」邏輯。
+
+**關鍵行動：**
+- **取消** 先前在 `api_service.js` 內部呼叫設定視窗的嘗試。
+- **修改 script.js** (Init 區域)：
+    - 在 `init()` 函數中，將「無 Last Mile 設定則切換至 Custom」的檢查邏輯，移至原有的自動切換邏輯 **之前** 執行，確保其優先權。
+    - 在 `DOMContentLoaded` 中僅保留 API Key 缺失的檢查。
+
+## 更新載入提示文字
+**日期：** 2026-01-16
+**ID：** `update_loading_text`
+
+**目標：**
+修正按鈕在等待 AI 回應時的提示文字，使其更符合「路線規劃」的情境。
+
+**關鍵行動：**
+- **修改 api_service.js**：
+    - 將 `callGeminiAPI` 中的 loading 文字由「🤖 思考中...」更改為「🤖 規劃路線方案中...」。
+
 ## 處理 AI 忙碌中錯誤 (503 Overloaded)
 **日期：** 2026-01-16
 **ID：** `handle_503_overloaded_and_encoding_fix`

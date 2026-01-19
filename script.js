@@ -1845,11 +1845,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Debug Button Visibility Logic
     const debugBtn = document.getElementById('debugInfoBtn');
-    if (debugBtn) {
+    const modalDebugBtn = document.getElementById('modalDebugBtn');
+
+    if (debugBtn || modalDebugBtn) {
         const isLocal = window.location.protocol === 'file:' ||
             window.location.hostname === 'localhost' ||
             window.location.hostname === '127.0.0.1';
-        debugBtn.style.display = isLocal ? 'inline-block' : 'none';
+
+        if (debugBtn) debugBtn.style.display = isLocal ? 'inline-block' : 'none';
+        if (modalDebugBtn) modalDebugBtn.style.display = isLocal ? 'inline-block' : 'none';
     }
 
     // Default Tab Priority Logic

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Odise Assistant Tests</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mocha/10.2.0/mocha.min.css" />
+    <style>
+        /* User Request: 放大 0.5 倍 (1.5x Scale) */
+        /* 改用 zoom: 1.5，這在 Chrome/Edge 上能更自然地放大所元件且不會切換版面 */
+        body {
+            zoom: 1.5;
+            margin: 20px;
+            font-family: sans-serif;
+        }
+
+        /* Translate common Mocha headers via pseudo-elements (Hack) */
+        #mocha-stats .passes em::after {
+            content: " (通過)";
+            font-style: normal;
+        }
+
+        #mocha-stats .failures em::after {
+            content: " (失敗)";
+            font-style: normal;
+        }
+
+        #mocha-stats .duration em::after {
+            content: " (耗時)";
+            font-style: normal;
+        }
+
+        /* Hide the 'Replay' buttons (triangles) to avoid confusion */
+        a.replay {
+            display: none !important;
+        }
+
+        /* Custom tweaks for Mocha UI consistency */
+        #mocha {
+            margin: 0 !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="mocha"></div>
+
+    <!-- Test Framework (CDNJS - More Reliable) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chai/4.3.7/chai.min.js"
+        onerror="alert('Error loading Chai. Check internet connection.')"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mocha/10.2.0/mocha.min.js"
+        onerror="alert('Error loading Mocha. Check internet connection.')"></script>
+
+    <script class="mocha-init">
+        mocha.setup('bdd');
+        mocha.checkLeaks();
+    </script>
+
+    <!-- Code Under Test -->
+    <!-- We need to ensure api_service.js is loaded WITHOUT executing side effects like alert() if possible, 
+       or we mock environment variables. 
+       Currently api_service.js defines functions globally, which is fine. -->
+    <script>
+        // Mock global state expected by api_service.js
+        window.STATION_DATA = { bike: {} };
+        window.state = {
+            settings: { apiKey: 'TEST_KEY' },
+            train: [], mrt: [], bus: [], bike: []
+        };
+        // Mock alert to prevent blocking
+        window.alert = (msg) => console.log("[Alert Mock]", msg);
+    </script>
+    <script src="../api_service.js"></script>
+
+    <!-- Test Suite -->
+    <script src="browser_suite.js"></script>
+
+    <script class="mocha-exec">
+        window.onload = function () {
+            if (typeof describe === 'undefined') {
+                console.error("Mocha not loaded?");
+            }
+            if (typeof calculateDistance === 'undefined') {
+                const runner = document.getElementById('mocha');
+                runner.innerHTML = '<h3 style="color:red">Error: api_service.js failed to load. Check console.</h3>';
+                return;
+            }
+            mocha.run();
+        };
+    </script>
+</body>
+
+</html>

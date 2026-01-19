@@ -536,3 +536,12 @@ async function askGeminiForStations(query, type = 'bike') {
         if (grid) grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--danger-color);">❌ ${msg}</div>`;
     }
 }
+// Node.js / Jest Compatibility
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        calculateDistance,
+        checkIsHoliday,
+        createCommutePrompt,
+        fetchYouBikeData
+    };
+}

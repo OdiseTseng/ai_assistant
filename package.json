@@ -4,7 +4,9 @@
   "description": "Odise Gemini Assistant",
   "main": "api_service.js",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "test:e2e": "playwright test",
+    "report": "playwright show-report"
   },
   "keywords": [
     "commute",
@@ -14,5 +16,6 @@
   "author": "Odise",
   "license": "ISC",
   "devDependencies": {
+    "@playwright/test": "^1.41.0"
   }
 }

@@ -17,26 +17,64 @@ test.describe('Index Page Component & Logic', () => {
         }
     });
 
-    test.describe('Sidebar Component', () => {
-        test('點擊 Menu Button 應該開啟 Sidebar', async ({ page }) => {
+    /* --- Sidebar Component (Desktop) --- */
+    test.describe('Sidebar Component (Desktop)', () => {
+
+        test('Desktop: Sidebar 應預設顯示 (或可切換)，Menu Button 應隱藏', async ({ page }) => {
+            // Check Menu Button visibility
+            const menuBtn = page.locator('.menu-toggle');
+            await expect(menuBtn).toBeHidden();
+
+            // Desktop layout usually pushes main content. 
+            // We just verify sidebar element exists.
+            const sidebar = page.locator('#sidebar');
+            // Depending on CSS, it might be visible or transformed.
+            // Based on style.css: .sidebar { transform: translateX(0) } for Desktop by default?
+            // Actually style.css .sidebar has transition but no default transform hide unless < 768px.
+            await expect(sidebar).toBeVisible();
+        });
+
+        test('Desktop: 點擊 Sidebar 內的連結應導航 (不需點擊 Menu toggle)', async ({ page }) => {
+            await page.locator('.nav-item', { hasText: '儀表板' }).click();
+            await expect(page.locator('.dashboard-container')).toBeVisible();
+        });
+
+        test('Desktop: 點擊 "個人化設定" 連結開啟 Settings Modal', async ({ page }) => {
+            await page.locator('.nav-item', { hasText: '個人化設定' }).click();
+            await expect(page.locator('#settingsModal')).toBeVisible();
+        });
+
+        test('Desktop: 點擊 "說明文件" 連結開啟 Help Modal', async ({ page }) => {
+            await page.locator('.nav-item', { hasText: '說明文件' }).click();
+            await expect(page.locator('#helpModal')).toBeVisible();
+        });
+    });
+
+    /* --- Sidebar Component (Mobile) --- */
+    test.describe('Sidebar Component (Mobile)', () => {
+        // Enforce Mobile Viewport
+        test.use({ viewport: { width: 375, height: 667 } });
+
+        test('Mobile: Sidebar 應預設隱藏，Menu Button 應顯示', async ({ page }) => {
             const sidebar = page.locator('#sidebar');
             const menuBtn = page.locator('.menu-toggle');
 
-            // Ensure initially closed (or check current state)
-            // Note: Mobile might be closed by default, Desktop might be open?
-            // checking .active class or visibility. 
-            // Based on index.html, sidebar has class "sidebar", toggled via JS?
-            // Actually, looks like sidebar is always visible on Desktop?
-            // Let's assume mobile view or just check toggle behavior.
-            // If we are on Desktop, sidebar might be sticky. 
-            // Let's check if overlay is visible when toggled.
+            await expect(menuBtn).toBeVisible();
+            // In CSS, mobile sidebar is translateX(-100%).
+            // Playwright might consider it "visible" if it's in the DOM but off-screen?
+            // Or we check class .active.
+            await expect(sidebar).not.toHaveClass(/active/);
+        });
+
+        test('Mobile: 點擊 Menu Button 應該開啟 Sidebar', async ({ page }) => {
+            const sidebar = page.locator('#sidebar');
+            const menuBtn = page.locator('.menu-toggle');
 
             await menuBtn.click();
-            // Check if sidebar has active class or is visible
             await expect(sidebar).toHaveClass(/active/);
         });
 
-        test('點擊 Overlay 應該關閉 Sidebar', async ({ page }) => {
+        test('Mobile: 點擊 Overlay 應該關閉 Sidebar', async ({ page }) => {
             // Open first
             await page.locator('.menu-toggle').click();
             const sidebar = page.locator('#sidebar');
@@ -47,15 +85,15 @@ test.describe('Index Page Component & Logic', () => {
             await expect(sidebar).not.toHaveClass(/active/);
         });
 
-        test('點擊 Sidebar 內的 "儀表板" 連結應該導航至 Dashboard', async ({ page }) => {
-            // Open sidebar logic if needed, or assume open.
-            await page.locator('.menu-toggle').click(); // Ensure open
-
+        test('Mobile: 點擊 Sidebar 內的連結應導航並自動關閉 Sidebar (視實作而定)', async ({ page }) => {
+            await page.locator('.menu-toggle').click();
             await page.locator('.nav-item', { hasText: '儀表板' }).click();
+
             await expect(page.locator('.dashboard-container')).toBeVisible();
+            // Usually mobile menu closes on selection, but if not implemented, strictly check navigation.
         });
 
-        test('點擊 Sidebar 內的 "個人化設定" 連結應該開啟 Settings Modal', async ({ page }) => {
+        test('Mobile: 點擊 "個人化設定" 連結開啟 Settings Modal', async ({ page }) => {
             await page.locator('.menu-toggle').click();
             await page.locator('.nav-item', { hasText: '個人化設定' }).click();
             await expect(page.locator('#settingsModal')).toBeVisible();
@@ -193,7 +231,11 @@ test.describe('Index Page Component & Logic', () => {
 
     test.describe('Settings Modal', () => {
         test.beforeEach(async ({ page }) => {
-            await page.locator('.menu-toggle').click();
+            // Open sidebar if menu toggle is visible (Mobile)
+            const menuBtn = page.locator('.menu-toggle');
+            if (await menuBtn.isVisible()) {
+                await menuBtn.click();
+            }
             await page.locator('.nav-item', { hasText: '個人化設定' }).click();
         });
 

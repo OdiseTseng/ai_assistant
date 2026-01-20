@@ -1,0 +1,5 @@
+執行測試
+docker compose run --rm playwright npm run test:e2e
+根據
+playwright.config.js 內的參數執行測試
+testDir: './doc/test',  >>> 有別的測試計畫要記得更改

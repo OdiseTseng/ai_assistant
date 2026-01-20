@@ -4,6 +4,15 @@ const { test, expect } = require('@playwright/test');
 test.describe('Index Page Component & Logic', () => {
 
     test.beforeEach(async ({ page }) => {
+        // [Mock] Pre-populate localStorage so script.js renders lists (Daily/OldHome)
+        await page.addInitScript(() => {
+            const dummyStations = JSON.stringify([{ name: 'Test Station', lat: 25.0, lng: 121.0 }]);
+            window.localStorage.setItem('user_stations_train', dummyStations);
+            window.localStorage.setItem('user_stations_mrt', dummyStations);
+            window.localStorage.setItem('user_stations_bus', dummyStations);
+            window.localStorage.setItem('user_stations_bike', dummyStations);
+        });
+
         await page.goto('/');
 
         // Handle Init Prompt Modal if it appears
@@ -16,17 +25,17 @@ test.describe('Index Page Component & Logic', () => {
             // Modal might not appear if params are already set in localStorage or timing issue
         }
 
-        // [DEBUG] Inject dummy content to ensure lists have height for visibility checks
+        // [DEBUG] Inject dummy content to ensure 'Custom' lists have height (since they don't load from storage)
         await page.evaluate(() => {
             const listIds = [
-                '#train-list', '#mrt-list', '#bus-list', '#bike-list',
-                '#train-list-2', '#mrt-list-2', '#bus-list-2', '#bike-list-2',
+                // Daily & OldHome should be populated by script.js from localStorage now.
+                // We only force inject Custom lists just in case.
                 '#train-list-custom', '#mrt-list-custom', '#bus-list-custom', '#bike-list-custom'
             ];
             listIds.forEach(id => {
                 const el = document.querySelector(id);
-                if (el) {
-                    el.innerHTML = '<div style="padding:10px; border:1px solid red;">測試用內容</div>';
+                if (el && el.innerHTML.trim() === '') {
+                    el.innerHTML = '<div style="padding:10px; border:1px solid blue;">Testing Custom Content</div>';
                 }
             });
         });

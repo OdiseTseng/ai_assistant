@@ -15,6 +15,21 @@ test.describe('Index Page Component & Logic', () => {
         } catch (e) {
             // Modal might not appear if params are already set in localStorage or timing issue
         }
+
+        // [DEBUG] Inject dummy content to ensure lists have height for visibility checks
+        await page.evaluate(() => {
+            const listIds = [
+                '#train-list', '#mrt-list', '#bus-list', '#bike-list',
+                '#train-list-2', '#mrt-list-2', '#bus-list-2', '#bike-list-2',
+                '#train-list-custom', '#mrt-list-custom', '#bus-list-custom', '#bike-list-custom'
+            ];
+            listIds.forEach(id => {
+                const el = document.querySelector(id);
+                if (el) {
+                    el.innerHTML = '<div style="padding:10px; border:1px solid red;">測試用內容</div>';
+                }
+            });
+        });
     });
 
     /* --- Sidebar Component (Desktop) --- */
@@ -134,7 +149,9 @@ test.describe('Index Page Component & Logic', () => {
 
     test.describe('Daily Commute Logic', () => {
         test.beforeEach(async ({ page }) => {
-            await page.locator('.dashboard-tab-btn', { hasText: '日常通勤' }).click();
+            const tabBtn = page.locator('.dashboard-tab-btn', { hasText: '日常通勤' });
+            await tabBtn.click();
+            await expect(tabBtn).toHaveClass(/active/);
         });
 
         test('"日常通勤" 分頁應包含 "最佳轉乘方案" 區塊', async ({ page }) => {
@@ -157,7 +174,9 @@ test.describe('Index Page Component & Logic', () => {
 
     test.describe('Old Home Logic', () => {
         test.beforeEach(async ({ page }) => {
-            await page.locator('.dashboard-tab-btn', { hasText: '回老家' }).click();
+            const tabBtn = page.locator('.dashboard-tab-btn', { hasText: '回老家' });
+            await tabBtn.click();
+            await expect(tabBtn).toHaveClass(/active/);
         });
 
         test('"回老家" 分頁應包含 "回老家規劃" 區塊', async ({ page }) => {
@@ -167,11 +186,20 @@ test.describe('Index Page Component & Logic', () => {
         test('"回家囉" 按鈕默認應為禁用狀態 (disabled)', async ({ page }) => {
             await expect(page.locator('#sendBtnOldHome')).toBeDisabled();
         });
+
+        test('Old Home: "火車", "捷運", "公車", "YouBike" 列表區塊應正確顯示', async ({ page }) => {
+            await expect(page.locator('#tab-oldHome #train-list-2')).toBeVisible();
+            await expect(page.locator('#tab-oldHome #mrt-list-2')).toBeVisible();
+            await expect(page.locator('#tab-oldHome #bus-list-2')).toBeVisible();
+            await expect(page.locator('#tab-oldHome #bike-list-2')).toBeVisible();
+        });
     });
 
     test.describe('Custom Route Logic', () => {
         test.beforeEach(async ({ page }) => {
-            await page.locator('.dashboard-tab-btn', { hasText: '想去哪?' }).click();
+            const tabBtn = page.locator('.dashboard-tab-btn', { hasText: '想去哪?' });
+            await tabBtn.click();
+            await expect(tabBtn).toHaveClass(/active/);
         });
 
         test('"想去哪?" 分頁應包含目的地輸入框', async ({ page }) => {
@@ -193,6 +221,14 @@ test.describe('Index Page Component & Logic', () => {
 
             await checkbox.uncheck();
             await expect(checkbox).not.toBeChecked();
+        });
+
+        test('Custom: "火車", "捷運", "公車", "YouBike" 列表區塊應正確顯示', async ({ page }) => {
+            // Note: Custom lists have `-custom` suffix
+            await expect(page.locator('#tab-custom #train-list-custom')).toBeVisible();
+            await expect(page.locator('#tab-custom #mrt-list-custom')).toBeVisible();
+            await expect(page.locator('#tab-custom #bus-list-custom')).toBeVisible();
+            await expect(page.locator('#tab-custom #bike-list-custom')).toBeVisible();
         });
     });
 

@@ -1,0 +1,14 @@
+stages:
+  - test
+
+tests:
+  stage: test
+  image: mcr.microsoft.com/playwright:v1.50.0-jammy # 請確認版本與 package.json 一致
+  script:
+    - npm ci
+    - npx playwright test
+  artifacts:
+    when: always
+    paths:
+      - playwright-report/
+    expire_in: 30 days

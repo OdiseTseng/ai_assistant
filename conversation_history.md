@@ -5,6 +5,24 @@
 本文件作為我們對話的永久記錄，讓您可以透過同步此儲存庫，在不同機器（Windows/Mac）上存取上下文和歷史記錄。
 
 
+## 產生專案文件 (BRD/PRD/SDD/Test Plan/Manual)
+**日期：** 2026-01-20
+**ID：** `generate_project_docs_and_analysis`
+
+**目標：**
+根據 `conversation_history` 分析客戶畫像 (Persona) 與預期落差 (Gap)，並依據 SDLC 標準產出五份核心文件。
+
+**關鍵行動：**
+- **客戶分析** (`Project_Analysis.md`)：
+    - **畫像**：技術型 PM/資深開發者，重視 UI 細節與工程規範。
+    - **落差**：從 POC 到 MVP 的巨大落差，主要在於視覺精緻度、穩定性與工程完整性。
+- **文件產出**：
+    - **BRD** (`BRD.md`)：定義商業價值與市場目標。
+    - **PRD** (`PRD.md`)：詳列使用者故事與功能規格。
+    - **SDD** (`SDD.md`)：系統架構與 API 設計。
+    - **Test Plan** (`Test_Plan.md`)：測試計畫與案例。
+    - **User Manual** (`User_Manual.md`)：使用者操作手冊。
+
 ## 產生 index.html 測試案例
 **日期：** 2026-01-20
 **ID：** `gen_test_cases_index`

@@ -29,20 +29,31 @@ test.describe('Odise 助理首頁', () => {
         await expect(page).toHaveTitle(/Assistant/);
     });
 
-    test('應該顯示主要儀表板區塊', async ({ page }) => {
+    test('應該顯示任一儀表板區塊 (OR條件)', async ({ page }) => {
+        // Double-check modal state. If it's still there (beforeEach failed to close), skip.
         const modal = page.locator('#initPromptModal');
-        // 用戶要求：如果 Modal 依然存在 (例如關閉失敗)，則跳過此檢查以避免錯誤
         if (await modal.isVisible()) {
-            console.log('Modal 依然存在，跳過儀表板檢查');
+            console.log('⚠️ Modal 依然存在 (可能遮擋畫面)，跳過此測試');
+            test.skip();
             return;
         }
 
-        // 檢查儀表板容器
         const dashboard = page.locator('.dashboard-container');
         await expect(dashboard).toBeVisible();
 
-        // 檢查行程結果區塊
-        const itineraryBox = page.locator('#itinerary-result');
-        await expect(itineraryBox).toBeVisible();
+        // 使用 OR 條件檢查：只要其中一個 itinerary-result 是可見的即可
+        // script.js 會根據時間自動切換 Tag (Daily/OldHome/Custom)
+        const anyResultBox = page.locator('#itinerary-result, #itinerary-result-oldHome, #itinerary-result-custom');
+
+        // 由於可能有多個 match (但只有一個 visible)，我們檢查是否有任何一個 visible
+        // 或者使用 first().toBeVisible() 搭配 CSS :visible 偽類? Playwright 推薦用斷言
+        // 簡單作法：列出三個 Locator，期待至少一個 Visible
+        const daily = page.locator('#itinerary-result');
+        const oldHome = page.locator('#itinerary-result-oldHome');
+        const custom = page.locator('#itinerary-result-custom');
+
+        // 使用 Promise.race 或簡單的邏輯判斷
+        // Playwright expect(locator.or(locator)).toBeVisible()
+        await expect(daily.or(oldHome).or(custom)).toBeVisible();
     });
 });

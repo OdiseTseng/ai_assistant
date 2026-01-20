@@ -1,11 +1,22 @@
 # AI 助手對話記錄
 
-*產生日期：2026-01-16*
+*產生日期：2026-01-20*
 
 本文件作為我們對話的永久記錄，讓您可以透過同步此儲存庫，在不同機器（Windows/Mac）上存取上下文和歷史記錄。
 
 
-## 修復 AI 回傳巢狀結構導致無站點資訊
+## 產生 index.html 測試案例
+**日期：** 2026-01-20
+**ID：** `gen_test_cases_index`
+
+**目標：**
+根據 `/gen-test-case` 工作流，為 `index.html` 建立測試案例清單，以利後續自動化測試。
+
+**關鍵行動：**
+- **建立文件**：在 `doc/test/` 建立 `index_test_cases.md`。
+- **涵蓋範圍**：Sidebar, Dashboard (Daily, OldHome, Custom), Modals (Settings, Station, Init), Initialization Logic.
+- **實作測試**：建立 `doc/test/index.spec.js`。
+- **環境限制**：因無法呼叫 `npm`/`npx`，測試需由使用者手動執行驗證。## 修復 AI 回傳巢狀結構導致無站點資訊
 **日期：** 2026-01-16
 **ID：** `fix_nested_stations_response`
 

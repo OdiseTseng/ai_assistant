@@ -36,7 +36,11 @@ npx playwright test --ui
 npx playwright test
 
 # 僅執行特定檔案
-npx playwright test tests/e2e/index.spec.js
+npx playwright test tests/e2e/dashboard.spec.js
+npx playwright test tests/e2e/daily_commute.spec.js
+
+# 或者一次跑所有測試 (自動搜尋)
+npx playwright test
 
 # 指定瀏覽器 (預設跑所有設定的瀏覽器)
 npx playwright test --project=chromium

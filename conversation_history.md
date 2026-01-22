@@ -5,6 +5,21 @@
 本文件作為我們對話的永久記錄，讓您可以透過同步此儲存庫，在不同機器（Windows/Mac）上存取上下文和歷史記錄。
 
 
+## 建立專案開發技能 (Odise Dev Skill)
+**日期：** 2026-01-22
+**ID：** `create_odise_dev_skill`
+
+**目標：**
+將專案開發規則、測試流程與架構資訊標準化，建立為 Agent 可用的技能 (`.agent/skills/odise_dev/SKILL.md`)。
+
+**關鍵行動：**
+- **建立 Skill 文件**：
+    - 定義 `SKILL.md`，整合繁體中文規則、版本控制流程、測試指令與專案架構。
+    - 設置為 `odise_dev` 技能，供後續任務調用。
+- **文件更新**：
+    - 更新 `task.md` 標記任務完成。
+    - 更新 `conversation_history.md` 加入此記錄。
+
 ## 產生專案文件 (BRD/PRD/SDD/Test Plan/Manual)
 **日期：** 2026-01-20
 **ID：** `generate_project_docs_and_analysis`

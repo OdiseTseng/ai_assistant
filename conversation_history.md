@@ -5,6 +5,25 @@
 本文件作為我們對話的永久記錄，讓您可以透過同步此儲存庫，在不同機器（Windows/Mac）上存取上下文和歷史記錄。
 
 
+## 設計全域自動化開發技能 (Automation Expert)
+**日期：** 2026-01-22
+**ID：** `create_automation_expert_skill`
+
+**目標：**
+建立一個全域通用的自動化開發技能 (`automation_expert`)，標準化跨專案的 CI/CD 與部署流程。
+
+**關鍵行動：**
+- **需求分析**：
+    - 確認 CI/CD 平台：**GitLab CI**。
+    - 確認語言與建置工具：**Java (Maven)**, Python, C#, Web。
+    - 確認部署目標：**Docker Host (Local/Remote)**。
+- **建立 Skill 文件**：
+    - 建立 `.agent/skills/automation_expert/SKILL.md`。
+    - 內容涵蓋：專案語言識別、通用 Build 指令 (Maven/Pip/Dotnet)、Docker 多階段建置模板、GitLab CI 完整範本 (Build->Test->Dockerize->Deploy)。
+- **部署指示**：
+    - 已自動部署至全域 Agent 路徑：`C:\Users\yctse\.gemini\agent\skills\automation_expert\SKILL.md`。
+    - 驗證結果：Agent 成功讀取該路徑檔案，可供跨專案使用。
+
 ## 建立專案開發技能 (Odise Dev Skill)
 **日期：** 2026-01-22
 **ID：** `create_odise_dev_skill`
